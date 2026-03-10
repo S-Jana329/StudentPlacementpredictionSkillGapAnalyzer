@@ -135,7 +135,7 @@ const StudentList = ({
       {/* Footer count */}
       <div className="p-3 border-t border-border">
         <p className="text-xs text-muted-foreground font-body">
-          {students.length} student{students.length !== 1 ? "s" : ""}
+          {visibleStudents.length} student{visibleStudents.length !== 1 ? "s" : ""}
         </p>
       </div>
     </div>
