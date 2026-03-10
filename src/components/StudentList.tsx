@@ -31,6 +31,11 @@ const StudentList = ({
   onYearChange,
 }: StudentListProps) => {
   const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+
+  const visibleStudents = students.filter((s) =>
+    s.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="panel-scaffold h-screen w-full flex flex-col">
