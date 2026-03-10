@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Student } from "@/data/students";
 
 interface StudentListProps {
