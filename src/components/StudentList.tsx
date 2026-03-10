@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Student } from "@/data/students";
 
 interface StudentListProps {
@@ -27,16 +28,26 @@ const StudentList = ({
   onDepartmentChange,
   onYearChange,
 }: StudentListProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="panel-scaffold h-screen w-full flex flex-col">
       {/* Header */}
-      <div className="p-5 border-b border-border">
-        <h1 className="font-display text-lg font-bold text-foreground tracking-tight">
-          Student Placement
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5 font-body">
-          Prediction System
-        </p>
+      <div className="p-5 border-b border-border flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-lg font-bold text-foreground tracking-tight">
+            Student Placement
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5 font-body">
+            Prediction System
+          </p>
+        </div>
+        <button
+          onClick={() => navigate("/reports")}
+          className="text-xs font-body text-primary hover:underline"
+        >
+          Reports
+        </button>
       </div>
 
       {/* Filters */}
