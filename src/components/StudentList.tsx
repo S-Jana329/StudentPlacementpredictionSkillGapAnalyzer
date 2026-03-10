@@ -28,10 +28,12 @@ const StudentList = ({
   onDepartmentChange,
   onYearChange,
 }: StudentListProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="panel-scaffold h-screen w-full flex flex-col">
       {/* Header */}
-      <div className="p-5 border-b border-border">
+      <div className="p-5 border-b border-border flex items-center justify-between">
         <h1 className="font-display text-lg font-bold text-foreground tracking-tight">
           Student Placement
         </h1>
