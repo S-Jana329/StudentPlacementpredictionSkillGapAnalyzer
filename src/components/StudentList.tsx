@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 import { Student } from "@/data/students";
 
 interface StudentListProps {
@@ -29,6 +31,11 @@ const StudentList = ({
   onYearChange,
 }: StudentListProps) => {
   const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+
+  const visibleStudents = students.filter((s) =>
+    s.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="panel-scaffold h-screen w-full flex flex-col">
@@ -48,6 +55,20 @@ const StudentList = ({
         >
           Reports
         </button>
+      </div>
+
+      {/* Search */}
+      <div className="px-4 pt-3 pb-1">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search by name…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded border border-border bg-background pl-8 pr-3 py-2 text-sm font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
       </div>
 
       {/* Filters */}
@@ -82,10 +103,10 @@ const StudentList = ({
 
       {/* Student List */}
       <div className="flex-1 overflow-y-auto">
-        {students.length === 0 && (
+        {visibleStudents.length === 0 && (
           <p className="p-4 text-sm text-muted-foreground font-body">No students match filters.</p>
         )}
-        {students.map((student) => (
+        {visibleStudents.map((student) => (
           <button
             key={student.id}
             onClick={() => onSelect(student.id)}
@@ -114,7 +135,7 @@ const StudentList = ({
       {/* Footer count */}
       <div className="p-3 border-t border-border">
         <p className="text-xs text-muted-foreground font-body">
-          {students.length} student{students.length !== 1 ? "s" : ""}
+          {visibleStudents.length} student{visibleStudents.length !== 1 ? "s" : ""}
         </p>
       </div>
     </div>
