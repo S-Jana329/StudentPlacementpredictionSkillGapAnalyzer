@@ -48,7 +48,6 @@ const StudentList = ({
         >
           Reports
         </button>
-        </p>
       </div>
 
       {/* Filters */}
