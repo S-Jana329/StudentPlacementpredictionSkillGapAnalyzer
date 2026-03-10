@@ -34,11 +34,20 @@ const StudentList = ({
     <div className="panel-scaffold h-screen w-full flex flex-col">
       {/* Header */}
       <div className="p-5 border-b border-border flex items-center justify-between">
-        <h1 className="font-display text-lg font-bold text-foreground tracking-tight">
-          Student Placement
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5 font-body">
-          Prediction System
+        <div>
+          <h1 className="font-display text-lg font-bold text-foreground tracking-tight">
+            Student Placement
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5 font-body">
+            Prediction System
+          </p>
+        </div>
+        <button
+          onClick={() => navigate("/reports")}
+          className="text-xs font-body text-primary hover:underline"
+        >
+          Reports
+        </button>
         </p>
       </div>
 
