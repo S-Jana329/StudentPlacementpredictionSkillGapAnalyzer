@@ -57,6 +57,12 @@ const StudentList = ({
             Resume
           </button>
           <button
+            onClick={() => navigate("/interview")}
+            className="text-xs font-body text-primary hover:underline"
+          >
+            Interview
+          </button>
+          <button
             onClick={() => navigate("/reports")}
             className="text-xs font-body text-primary hover:underline"
           >
