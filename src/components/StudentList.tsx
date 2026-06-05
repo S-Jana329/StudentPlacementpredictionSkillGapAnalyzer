@@ -49,12 +49,20 @@ const StudentList = ({
             Prediction System
           </p>
         </div>
-        <button
-          onClick={() => navigate("/reports")}
-          className="text-xs font-body text-primary hover:underline"
-        >
-          Reports
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate("/resume")}
+            className="text-xs font-body text-primary hover:underline"
+          >
+            Resume
+          </button>
+          <button
+            onClick={() => navigate("/reports")}
+            className="text-xs font-body text-primary hover:underline"
+          >
+            Reports
+          </button>
+        </div>
       </div>
 
       {/* Search */}
