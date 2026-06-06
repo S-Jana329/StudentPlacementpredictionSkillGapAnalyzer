@@ -199,5 +199,140 @@ export const mockStudents: Student[] = [
   },
 ];
 
+// ---------- Generated dataset ----------
+// Deterministic generator that expands the base list into a large pool of students.
+
+const FIRST_NAMES = [
+  "Aarav","Vivaan","Aditya","Vihaan","Arjun","Sai","Reyansh","Ayaan","Krishna","Ishaan",
+  "Rohan","Karthik","Yash","Dhruv","Arnav","Kabir","Ansh","Aryan","Atharv","Dev",
+  "Rudra","Shaurya","Veer","Tanish","Nikhil","Rahul","Siddharth","Pranav","Aniket","Manav",
+  "Aditi","Ananya","Diya","Saanvi","Aaradhya","Anika","Pari","Myra","Aarohi","Riya",
+  "Ishita","Kavya","Meera","Navya","Priya","Sneha","Tara","Anvi","Ira","Nisha",
+  "Pooja","Ritika","Sakshi","Shreya","Tanvi","Vaishnavi","Yamini","Zara","Neha","Lavanya",
+];
+
+const LAST_NAMES = [
+  "Sharma","Patel","Verma","Iyer","Reddy","Nair","Singh","Joshi","Kumar","Gupta",
+  "Mehta","Shah","Rao","Pillai","Menon","Bose","Das","Mukherjee","Chatterjee","Banerjee",
+  "Khan","Ahmed","Sinha","Bhat","Kapoor","Malhotra","Chopra","Agarwal","Mishra","Yadav",
+  "Rao","Pandey","Trivedi","Saxena","Bansal","Goyal","Jain","Desai","Naidu","Pawar",
+];
+
+const DEPARTMENTS = ["Computer Science","Electronics","Mechanical","Civil"];
+
+const EXTRAS_POOL = [
+  "Coding Club","Robotics Club","Hackathon Winner","Open Source Contributor","ACM Chapter",
+  "IEEE Member","Quiz Club","Debate Society","Cultural Lead","Music Band",
+  "Drama Club","Sports Team","Cricket Team","Basketball Team","Football Team",
+  "Volunteer NGO","Student Council","Blog Writer","Photography Club","Entrepreneurship Cell",
+  "Women in Tech","GDSC Lead","Innovation Lab","Research Assistant",
+];
+
+const CERTS_POOL = [
+  "AWS Cloud Practitioner","Azure Fundamentals","Google Cloud Associate","Python Professional",
+  "Java Certified","React Developer","Node.js Certified","MongoDB Associate","SQL Advanced",
+  "Data Structures Advanced","Machine Learning Specialist","TensorFlow Developer","Scrum Master",
+  "AutoCAD Professional","MATLAB Certified","SolidWorks Pro","Embedded Systems","PCB Design",
+  "Six Sigma Yellow Belt","CCNA","Linux Administration","Cybersecurity Essentials",
+];
+
+// Mulberry32 PRNG for deterministic randomness.
+function makeRng(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pick<T>(rng: () => number, arr: T[]): T {
+  return arr[Math.floor(rng() * arr.length)];
+}
+
+function pickMany<T>(rng: () => number, arr: T[], min: number, max: number): T[] {
+  const n = Math.floor(rng() * (max - min + 1)) + min;
+  const pool = [...arr];
+  const out: T[] = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    const idx = Math.floor(rng() * pool.length);
+    out.push(pool.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+function generateStudent(id: number, rng: () => number): Student {
+  const first = pick(rng, FIRST_NAMES);
+  const last = pick(rng, LAST_NAMES);
+  const department = pick(rng, DEPARTMENTS);
+  const year = Math.floor(rng() * 4) + 1;
+  const gpa = +(4 + rng() * 6).toFixed(1); // 4.0 - 10.0
+  const internships = Math.floor(rng() * 4); // 0-3
+  const projectScore = Math.floor(40 + rng() * 60); // 40-100
+  const certs = pickMany(rng, CERTS_POOL, 0, 4);
+  const extras = pickMany(rng, EXTRAS_POOL, 0, 3);
+  const backlogs = rng() < 0.6 ? 0 : Math.floor(rng() * 6); // skew to zero
+  const attendancePercent = Math.floor(55 + rng() * 45); // 55-100
+
+  // Weighted probability calculation
+  const gpaScore = (gpa - 4) * 12; // 0-72
+  const internScore = internships * 10; // 0-30
+  const projScore = (projectScore - 40) * 0.5; // 0-30
+  const certScore = certs.length * 5; // 0-20
+  const attendScore = (attendancePercent - 55) * 0.4; // 0-18
+  const backlogPenalty = backlogs * 8; // 0-40+
+  const raw = gpaScore + internScore + projScore + certScore + attendScore - backlogPenalty;
+  const placementProbability = clamp(Math.round(raw + (rng() * 14 - 7)), 5, 99);
+
+  const sign = (good: boolean, mag: number) => ({
+    weight: good ? mag : -mag,
+    contribution: (good ? "positive" : "negative") as "positive" | "negative",
+  });
+
+  const factors: PredictionFactor[] = [
+    { label: "GPA", ...sign(gpa >= 7, Math.round(Math.abs(gpa - 6.5) * 14)) },
+    { label: "Internships", ...sign(internships >= 1, internships >= 1 ? 30 + internships * 15 : 40) },
+    { label: "Project Score", ...sign(projectScore >= 65, Math.round(Math.abs(projectScore - 65) * 0.9)) },
+    { label: "Certifications", ...sign(certs.length >= 1, certs.length >= 1 ? 15 + certs.length * 10 : 35) },
+    { label: "Backlogs", ...sign(backlogs === 0, backlogs === 0 ? 0 : 20 + backlogs * 10) },
+    { label: "Attendance", ...sign(attendancePercent >= 80, Math.round(Math.abs(attendancePercent - 80) * 1.2)) },
+  ];
+
+  return {
+    id: String(id),
+    name: `${first} ${last}`,
+    department,
+    year,
+    gpa,
+    internships,
+    projectScore,
+    extracurriculars: extras,
+    certifications: certs,
+    backlogs,
+    attendancePercent,
+    placementProbability,
+    factors,
+  };
+}
+
+function generateMany(count: number, startId: number, seed: number): Student[] {
+  const rng = makeRng(seed);
+  const out: Student[] = [];
+  for (let i = 0; i < count; i++) out.push(generateStudent(startId + i, rng));
+  return out;
+}
+
+// Append a large generated cohort to the curated list.
+const GENERATED_COUNT = 294;
+const startId = mockStudents.length + 1;
+mockStudents.push(...generateMany(GENERATED_COUNT, startId, 20260606));
+
 export const departments = ["All", "Computer Science", "Electronics", "Mechanical", "Civil"];
 export const years = [0, 1, 2, 3, 4]; // 0 = All
+
