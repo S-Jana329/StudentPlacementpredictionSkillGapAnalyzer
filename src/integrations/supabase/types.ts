@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      career_roadmaps: {
+        Row: {
+          created_at: string
+          current_skills: string | null
+          error: string | null
+          id: string
+          roadmap: Json | null
+          status: string
+          target_role: string
+          time_horizon_months: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_skills?: string | null
+          error?: string | null
+          id?: string
+          roadmap?: Json | null
+          status?: string
+          target_role: string
+          time_horizon_months?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_skills?: string | null
+          error?: string | null
+          id?: string
+          roadmap?: Json | null
+          status?: string
+          target_role?: string
+          time_horizon_months?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       interview_messages: {
         Row: {
           content: string
