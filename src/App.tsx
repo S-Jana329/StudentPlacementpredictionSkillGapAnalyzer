@@ -10,6 +10,7 @@ import Reports from "./pages/Reports.tsx";
 import Auth from "./pages/Auth.tsx";
 import ResumeAnalyzer from "./pages/ResumeAnalyzer.tsx";
 import InterviewCoach from "./pages/InterviewCoach.tsx";
+import CareerRoadmap from "./pages/CareerRoadmap.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/resume" element={<ProtectedRoute><ResumeAnalyzer /></ProtectedRoute>} />
             <Route path="/interview" element={<ProtectedRoute><InterviewCoach /></ProtectedRoute>} />
+            <Route path="/roadmap" element={<ProtectedRoute><CareerRoadmap /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
