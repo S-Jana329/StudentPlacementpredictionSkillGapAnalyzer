@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import { Student } from "@/data/students";
+import StudentUploadDialog from "@/components/StudentUploadDialog";
+
 
 interface StudentListProps {
   students: Student[];
@@ -70,6 +72,11 @@ const StudentList = ({
           </button>
         </div>
       </div>
+      {/* Upload */}
+      <div className="px-4 pt-3">
+        <StudentUploadDialog />
+      </div>
+
 
       {/* Search */}
       <div className="px-4 pt-3 pb-1">

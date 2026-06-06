@@ -1,22 +1,28 @@
-import { useState, useMemo } from "react";
-import { mockStudents } from "@/data/students";
+import { useState, useMemo, useEffect } from "react";
+import { useStudents } from "@/hooks/useStudents";
 import StudentList from "@/components/StudentList";
 import StudentProfile from "@/components/StudentProfile";
 
 const Index = () => {
-  const [selectedId, setSelectedId] = useState<string | null>(mockStudents[0]?.id ?? null);
+  const { students } = useStudents();
+  const [selectedId, setSelectedId] = useState<string | null>(students[0]?.id ?? null);
   const [department, setDepartment] = useState("All");
   const [year, setYear] = useState(0);
 
+  useEffect(() => {
+    if (!selectedId && students[0]) setSelectedId(students[0].id);
+  }, [students, selectedId]);
+
   const filteredStudents = useMemo(() => {
-    return mockStudents.filter((s) => {
+    return students.filter((s) => {
       if (department !== "All" && s.department !== department) return false;
       if (year !== 0 && s.year !== year) return false;
       return true;
     });
-  }, [department, year]);
+  }, [students, department, year]);
 
-  const selectedStudent = mockStudents.find((s) => s.id === selectedId) ?? null;
+  const selectedStudent = students.find((s) => s.id === selectedId) ?? null;
+
 
   return (
     <div className="flex h-screen overflow-hidden">
