@@ -6,6 +6,7 @@ const links = [
   { to: "/", label: "Students" },
   { to: "/resume", label: "Resume Analyzer" },
   { to: "/interview", label: "Interview Coach" },
+  { to: "/roadmap", label: "Career Roadmap" },
   { to: "/reports", label: "Reports" },
 ];
 
