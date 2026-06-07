@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Button } from "@/components/ui/button";
 
-const links = [
+const baseLinks = [
   { to: "/", label: "Students" },
   { to: "/resume", label: "Resume Analyzer" },
   { to: "/interview", label: "Interview Coach" },
@@ -15,6 +16,9 @@ const AppHeader = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
+
+  const links = isAdmin ? [...baseLinks, { to: "/admin", label: "Admin" }] : baseLinks;
 
   return (
     <header className="border-b border-border bg-card px-6 py-3 flex items-center justify-between">
@@ -22,7 +26,7 @@ const AppHeader = () => {
         <Link to="/" className="font-display text-base font-bold text-foreground">
           Placement Predictor
         </Link>
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-4 flex-wrap">
           {links.map((l) => (
             <Link
               key={l.to}
