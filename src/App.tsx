@@ -11,6 +11,7 @@ import Auth from "./pages/Auth.tsx";
 import ResumeAnalyzer from "./pages/ResumeAnalyzer.tsx";
 import InterviewCoach from "./pages/InterviewCoach.tsx";
 import CareerRoadmap from "./pages/CareerRoadmap.tsx";
+import CareerAssistant from "./pages/CareerAssistant.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/resume" element={<ProtectedRoute><ResumeAnalyzer /></ProtectedRoute>} />
             <Route path="/interview" element={<ProtectedRoute><InterviewCoach /></ProtectedRoute>} />
             <Route path="/roadmap" element={<ProtectedRoute><CareerRoadmap /></ProtectedRoute>} />
+            <Route path="/assistant" element={<ProtectedRoute><CareerAssistant /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
