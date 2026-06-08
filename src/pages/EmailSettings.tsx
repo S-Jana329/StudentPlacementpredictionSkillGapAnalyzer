@@ -89,7 +89,9 @@ const EmailSettings = () => {
       const e: Record<string, string> = {};
       for (const i of parsed.error.issues) e[i.path[0] as string] = i.message;
       setErrors(e);
-      toast.error("Please fix the errors before saving.");
+      toast.error("Please fix the highlighted fields before saving.", {
+        description: `${parsed.error.issues.length} field${parsed.error.issues.length > 1 ? "s" : ""} need attention.`,
+      });
       return;
     }
     setErrors({});
@@ -99,12 +101,36 @@ const EmailSettings = () => {
       .upsert({ user_id: user.id, ...parsed.data }, { onConflict: "user_id" });
     setSaving(false);
     if (error) {
-      toast.error(error.message);
+      // Map Postgres CHECK constraint violations back to specific fields
+      const fieldErrors: Record<string, string> = {};
+      const msg = `${error.message} ${(error as any).details ?? ""}`.toLowerCase();
+      if (msg.includes("email_settings_domain_chk")) {
+        fieldErrors.sender_domain = "Backend rejected this domain. Use a valid format like notify.yourdomain.com.";
+      }
+      if (msg.includes("email_settings_local_chk")) {
+        fieldErrors.from_local_part = "Backend rejected this address. Use letters, digits, dots, dashes, or underscores (max 64).";
+      }
+      if (msg.includes("email_settings_from_name_chk")) {
+        fieldErrors.from_name = "Backend rejected this name. Must be 1–100 characters.";
+      }
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors);
+        toast.error("Couldn't save settings", {
+          description: "Your sender details didn't pass validation. See the highlighted fields.",
+        });
+      } else {
+        toast.error("Couldn't save settings", { description: error.message });
+      }
       return;
     }
     setSaved(true);
-    toast.success("Email settings saved");
+    toast.success("Email settings saved", {
+      description: s.sender_domain
+        ? `Notifications will send from ${s.from_local_part}@${s.sender_domain}.`
+        : "Add a sender domain to start sending notifications.",
+    });
   };
+
 
   const reset = () => {
     setS(defaults);
