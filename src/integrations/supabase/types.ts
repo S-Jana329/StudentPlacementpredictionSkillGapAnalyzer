@@ -53,6 +53,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_settings: {
+        Row: {
+          created_at: string
+          from_local_part: string
+          from_name: string
+          notify_interview_feedback: boolean
+          notify_resume_complete: boolean
+          notify_roadmap_ready: boolean
+          sender_domain: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_local_part?: string
+          from_name?: string
+          notify_interview_feedback?: boolean
+          notify_resume_complete?: boolean
+          notify_roadmap_ready?: boolean
+          sender_domain?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_local_part?: string
+          from_name?: string
+          notify_interview_feedback?: boolean
+          notify_resume_complete?: boolean
+          notify_roadmap_ready?: boolean
+          sender_domain?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       interview_messages: {
         Row: {
           content: string

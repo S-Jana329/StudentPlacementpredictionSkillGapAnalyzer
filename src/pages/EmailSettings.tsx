@@ -5,77 +5,123 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Mail, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
-
-const STORAGE_KEY = "email-notification-settings-v1";
+import { Mail, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
+import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 type Settings = {
-  senderDomain: string;
-  fromName: string;
-  fromLocalPart: string;
-  notifyResumeComplete: boolean;
-  notifyRoadmapReady: boolean;
-  notifyInterviewFeedback: boolean;
+  sender_domain: string;
+  from_name: string;
+  from_local_part: string;
+  notify_resume_complete: boolean;
+  notify_roadmap_ready: boolean;
+  notify_interview_feedback: boolean;
 };
 
 const defaults: Settings = {
-  senderDomain: "",
-  fromName: "Placement Predictor",
-  fromLocalPart: "notifications",
-  notifyResumeComplete: true,
-  notifyRoadmapReady: true,
-  notifyInterviewFeedback: true,
+  sender_domain: "",
+  from_name: "Placement Predictor",
+  from_local_part: "notifications",
+  notify_resume_complete: true,
+  notify_roadmap_ready: true,
+  notify_interview_feedback: true,
 };
 
-const load = (): Settings => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaults;
-    return { ...defaults, ...JSON.parse(raw) };
-  } catch {
-    return defaults;
-  }
-};
+const domainRegex = /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
+const localRegex = /^[a-z0-9._-]+$/i;
 
-const domainPattern = /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
-const localPattern = /^[a-z0-9._-]+$/i;
+const schema = z.object({
+  sender_domain: z
+    .string()
+    .trim()
+    .max(253)
+    .refine((v) => v === "" || domainRegex.test(v), "Enter a valid domain."),
+  from_name: z.string().trim().min(1, "From name is required").max(100),
+  from_local_part: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .regex(localRegex, "Use letters, digits, dots, dashes, or underscores."),
+  notify_resume_complete: z.boolean(),
+  notify_roadmap_ready: z.boolean(),
+  notify_interview_feedback: z.boolean(),
+});
 
 const EmailSettings = () => {
+  const { user } = useAuth();
   const [s, setS] = useState<Settings>(defaults);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setS(load());
-  }, []);
+    if (!user) return;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("email_settings")
+        .select("sender_domain, from_name, from_local_part, notify_resume_complete, notify_roadmap_ready, notify_interview_feedback")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) toast.error(error.message);
+      if (data) setS({ ...defaults, ...data });
+      setLoading(false);
+    })();
+  }, [user]);
 
   const fromAddress = useMemo(
-    () => (s.senderDomain && s.fromLocalPart ? `${s.fromLocalPart}@${s.senderDomain}` : ""),
-    [s.senderDomain, s.fromLocalPart],
+    () => (s.sender_domain && s.from_local_part ? `${s.from_local_part}@${s.sender_domain}` : ""),
+    [s.sender_domain, s.from_local_part],
   );
-
-  const domainValid = !s.senderDomain || domainPattern.test(s.senderDomain);
-  const localValid = !s.fromLocalPart || localPattern.test(s.fromLocalPart);
-  const canSave = domainValid && localValid && s.fromName.trim().length > 0;
 
   const update = <K extends keyof Settings>(k: K, v: Settings[K]) => {
     setS((p) => ({ ...p, [k]: v }));
     setSaved(false);
   };
 
-  const save = () => {
-    if (!canSave) {
+  const save = async () => {
+    if (!user) return;
+    const parsed = schema.safeParse(s);
+    if (!parsed.success) {
+      const e: Record<string, string> = {};
+      for (const i of parsed.error.issues) e[i.path[0] as string] = i.message;
+      setErrors(e);
       toast.error("Please fix the errors before saving.");
       return;
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    setErrors({});
+    setSaving(true);
+    const { error } = await supabase
+      .from("email_settings")
+      .upsert({ user_id: user.id, ...parsed.data }, { onConflict: "user_id" });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setSaved(true);
     toast.success("Email settings saved");
   };
 
   const reset = () => {
     setS(defaults);
+    setErrors({});
     setSaved(false);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,13 +136,11 @@ const EmailSettings = () => {
           </p>
         </div>
 
-        {/* Sender domain */}
         <section className="section-card space-y-4">
           <div>
             <h2 className="font-display text-base font-semibold">Sender Domain</h2>
             <p className="text-xs text-muted-foreground font-body mt-1">
               The domain your users will see in their inbox (e.g. <code>notify.yourdomain.com</code>).
-              Verify your domain in Cloud → Emails before sending.
             </p>
           </div>
 
@@ -106,12 +150,13 @@ const EmailSettings = () => {
               <Input
                 id="domain"
                 placeholder="notify.yourdomain.com"
-                value={s.senderDomain}
-                onChange={(e) => update("senderDomain", e.target.value.trim().toLowerCase())}
+                maxLength={253}
+                value={s.sender_domain}
+                onChange={(e) => update("sender_domain", e.target.value.trim().toLowerCase())}
               />
-              {!domainValid && (
+              {errors.sender_domain && (
                 <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertCircle size={12} /> Enter a valid domain.
+                  <AlertCircle size={12} /> {errors.sender_domain}
                 </p>
               )}
             </div>
@@ -121,9 +166,15 @@ const EmailSettings = () => {
               <Input
                 id="fromName"
                 placeholder="Placement Predictor"
-                value={s.fromName}
-                onChange={(e) => update("fromName", e.target.value)}
+                maxLength={100}
+                value={s.from_name}
+                onChange={(e) => update("from_name", e.target.value)}
               />
+              {errors.from_name && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle size={12} /> {errors.from_name}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -132,17 +183,18 @@ const EmailSettings = () => {
                 <Input
                   id="local"
                   placeholder="notifications"
-                  value={s.fromLocalPart}
-                  onChange={(e) => update("fromLocalPart", e.target.value.trim().toLowerCase())}
+                  maxLength={64}
+                  value={s.from_local_part}
+                  onChange={(e) => update("from_local_part", e.target.value.trim().toLowerCase())}
                   className="rounded-r-none"
                 />
                 <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-input bg-muted text-xs text-muted-foreground">
-                  @{s.senderDomain || "yourdomain.com"}
+                  @{s.sender_domain || "yourdomain.com"}
                 </span>
               </div>
-              {!localValid && (
+              {errors.from_local_part && (
                 <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertCircle size={12} /> Use letters, digits, dots, dashes, or underscores.
+                  <AlertCircle size={12} /> {errors.from_local_part}
                 </p>
               )}
             </div>
@@ -150,7 +202,7 @@ const EmailSettings = () => {
             <div className="space-y-2">
               <Label>Preview</Label>
               <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-body">
-                {s.fromName ? <span className="font-medium">{s.fromName}</span> : <span className="text-muted-foreground">From Name</span>}{" "}
+                {s.from_name ? <span className="font-medium">{s.from_name}</span> : <span className="text-muted-foreground">From Name</span>}{" "}
                 <span className="text-muted-foreground">
                   &lt;{fromAddress || "address@yourdomain.com"}&gt;
                 </span>
@@ -159,7 +211,6 @@ const EmailSettings = () => {
           </div>
         </section>
 
-        {/* Notification toggles */}
         <section className="section-card space-y-4">
           <div>
             <h2 className="font-display text-base font-semibold">Notification Events</h2>
@@ -172,49 +223,44 @@ const EmailSettings = () => {
             <ToggleRow
               title="Resume analysis complete"
               description="Send a summary email when AI resume analysis finishes."
-              checked={s.notifyResumeComplete}
-              onChange={(v) => update("notifyResumeComplete", v)}
+              checked={s.notify_resume_complete}
+              onChange={(v) => update("notify_resume_complete", v)}
             />
             <ToggleRow
               title="Career roadmap ready"
               description="Notify when a generated career roadmap is available."
-              checked={s.notifyRoadmapReady}
-              onChange={(v) => update("notifyRoadmapReady", v)}
+              checked={s.notify_roadmap_ready}
+              onChange={(v) => update("notify_roadmap_ready", v)}
             />
             <ToggleRow
               title="Interview feedback ready"
               description="Send performance feedback after a mock interview session."
-              checked={s.notifyInterviewFeedback}
-              onChange={(v) => update("notifyInterviewFeedback", v)}
+              checked={s.notify_interview_feedback}
+              onChange={(v) => update("notify_interview_feedback", v)}
             />
           </div>
         </section>
 
-        {/* Status / help */}
         <section className="section-card flex items-start gap-3">
           <CheckCircle2 className="text-success shrink-0 mt-0.5" size={18} />
           <div className="text-sm font-body text-foreground">
             <p>
               After saving, verify your domain's DNS records in{" "}
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className="text-primary inline-flex items-center gap-1"
-              >
+              <a href="#" onClick={(e) => e.preventDefault()} className="text-primary inline-flex items-center gap-1">
                 Cloud → Emails <ExternalLink size={12} />
               </a>{" "}
               to start sending live notifications.
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              These preferences are stored locally on this device.
+              Settings are stored securely in your account.
             </p>
           </div>
         </section>
 
         <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={reset}>Reset</Button>
-          <Button onClick={save} disabled={!canSave || saved}>
-            {saved ? "Saved" : "Save changes"}
+          <Button variant="outline" onClick={reset} disabled={saving}>Reset</Button>
+          <Button onClick={save} disabled={saving || saved}>
+            {saving ? <><Loader2 className="animate-spin mr-2" size={14} /> Saving...</> : saved ? "Saved" : "Save changes"}
           </Button>
         </div>
       </main>
@@ -223,16 +269,8 @@ const EmailSettings = () => {
 };
 
 const ToggleRow = ({
-  title,
-  description,
-  checked,
-  onChange,
-}: {
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) => (
+  title, description, checked, onChange,
+}: { title: string; description: string; checked: boolean; onChange: (v: boolean) => void }) => (
   <div className="flex items-start justify-between gap-4 rounded-md border border-border p-3">
     <div>
       <p className="text-sm font-body font-medium text-foreground">{title}</p>
