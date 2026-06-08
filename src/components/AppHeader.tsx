@@ -10,6 +10,7 @@ const baseLinks = [
   { to: "/roadmap", label: "Career Roadmap" },
   { to: "/assistant", label: "Assistant" },
   { to: "/reports", label: "Reports" },
+  { to: "/settings/email", label: "Email Settings" },
 ];
 
 const AppHeader = () => {
