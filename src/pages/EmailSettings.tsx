@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Mail, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
+import { Mail, CheckCircle2, AlertCircle, ExternalLink, Loader2, ShieldCheck, ShieldAlert, ShieldQuestion } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
