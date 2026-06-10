@@ -267,6 +267,59 @@ const EmailSettings = () => {
           </div>
         </section>
 
+        <section className="section-card space-y-4">
+          <div>
+            <h2 className="font-display text-base font-semibold">Email Previews</h2>
+            <p className="text-xs text-muted-foreground font-body mt-1">
+              Examples of what recipients will see for each enabled event.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {[
+              {
+                enabled: s.notify_resume_complete,
+                subject: "Your resume analysis is ready",
+                preview: "We've finished analyzing your resume. View your match scores and top skill highlights inside the app.",
+                cta: "View resume report",
+              },
+              {
+                enabled: s.notify_roadmap_ready,
+                subject: "Your career roadmap is ready",
+                preview: "Your personalized roadmap with milestones, recommended courses, and target roles is now available.",
+                cta: "Open roadmap",
+              },
+              {
+                enabled: s.notify_interview_feedback,
+                subject: "Your mock interview feedback is ready",
+                preview: "See your performance breakdown, strengths, and areas to improve from your latest mock interview.",
+                cta: "View feedback",
+              },
+            ].map((ex, i) => (
+              <div
+                key={i}
+                className={`rounded-md border border-border overflow-hidden ${ex.enabled ? "" : "opacity-50"}`}
+              >
+                <div className="bg-muted/40 px-3 py-2 text-xs font-body border-b border-border flex items-center justify-between">
+                  <span className="truncate">
+                    <span className="font-medium text-foreground">{s.from_name || "From Name"}</span>{" "}
+                    <span className="text-muted-foreground">&lt;{fromAddress || "address@yourdomain.com"}&gt;</span>
+                  </span>
+                  {!ex.enabled && <span className="text-[10px] uppercase text-muted-foreground ml-2">Off</span>}
+                </div>
+                <div className="px-3 py-3 bg-background">
+                  <p className="text-sm font-display font-semibold text-foreground">{ex.subject}</p>
+                  <p className="text-xs font-body text-muted-foreground mt-1 leading-relaxed">{ex.preview}</p>
+                  <div className="mt-3">
+                    <span className="inline-block text-xs font-body font-medium px-3 py-1.5 rounded bg-primary text-primary-foreground">
+                      {ex.cta}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="section-card flex items-start gap-3">
           <CheckCircle2 className="text-success shrink-0 mt-0.5" size={18} />
           <div className="text-sm font-body text-foreground">
