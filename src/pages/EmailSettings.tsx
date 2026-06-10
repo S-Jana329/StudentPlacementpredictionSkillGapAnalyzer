@@ -203,19 +203,60 @@ const EmailSettings = () => {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="domain">Sender domain</Label>
+            <div className="space-y-2 sm:col-span-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="domain">Sender domain</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={verifyDns}
+                  disabled={verifying || !s.sender_domain}
+                >
+                  {verifying ? <><Loader2 className="animate-spin mr-1.5" size={12} /> Checking...</> : <><ShieldCheck className="mr-1.5" size={12} /> Verify DNS</>}
+                </Button>
+              </div>
               <Input
                 id="domain"
                 placeholder="notify.yourdomain.com"
                 maxLength={253}
                 value={s.sender_domain}
-                onChange={(e) => update("sender_domain", e.target.value.trim().toLowerCase())}
+                onChange={(e) => {
+                  update("sender_domain", e.target.value.trim().toLowerCase());
+                  setDnsResult(null);
+                }}
               />
               {errors.sender_domain && (
                 <p className="text-xs text-destructive flex items-center gap-1">
                   <AlertCircle size={12} /> {errors.sender_domain}
                 </p>
+              )}
+              {dnsResult && (
+                <div className="mt-2 rounded-md border border-border divide-y divide-border overflow-hidden">
+                  {(["spf", "dkim", "dmarc"] as const).map((k) => {
+                    const c = dnsResult.checks[k];
+                    const Icon = c.status === "pass" ? ShieldCheck : c.status === "fail" ? ShieldAlert : ShieldQuestion;
+                    const color =
+                      c.status === "pass" ? "text-success" : c.status === "fail" ? "text-destructive" : "text-muted-foreground";
+                    return (
+                      <div key={k} className="flex items-start gap-2 px-3 py-2 bg-muted/30">
+                        <Icon className={`${color} shrink-0 mt-0.5`} size={14} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-body font-medium text-foreground uppercase tracking-wide">
+                            {k} <span className={`ml-1 ${color}`}>{c.status}</span>
+                          </p>
+                          <p className="text-xs font-body text-muted-foreground mt-0.5">{c.detail}</p>
+                          {c.record && (
+                            <p className="text-[10px] font-mono text-muted-foreground/80 mt-1 break-all">{c.record}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="text-[10px] text-muted-foreground px-3 py-1.5 bg-muted/30">
+                    Checked at {new Date(dnsResult.checkedAt).toLocaleTimeString()}
+                  </p>
+                </div>
               )}
             </div>
 
