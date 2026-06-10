@@ -56,6 +56,38 @@ const EmailSettings = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [verifying, setVerifying] = useState(false);
+  const [dnsResult, setDnsResult] = useState<{
+    domain: string;
+    checkedAt: string;
+    checks: {
+      spf: { status: "pass" | "fail" | "unknown"; detail: string; record?: string };
+      dkim: { status: "pass" | "fail" | "unknown"; detail: string; record?: string };
+      dmarc: { status: "pass" | "fail" | "unknown"; detail: string; record?: string };
+    };
+  } | null>(null);
+
+  const verifyDns = async () => {
+    const domain = s.sender_domain.trim().toLowerCase();
+    if (!domain || !domainRegex.test(domain)) {
+      setErrors((p) => ({ ...p, sender_domain: "Enter a valid domain before verifying DNS." }));
+      toast.error("Enter a valid domain first.");
+      return;
+    }
+    setVerifying(true);
+    setDnsResult(null);
+    const { data, error } = await supabase.functions.invoke("verify-email-dns", { body: { domain } });
+    setVerifying(false);
+    if (error) {
+      toast.error("DNS check failed", { description: error.message });
+      return;
+    }
+    setDnsResult(data);
+    const c = data.checks;
+    const passes = [c.spf, c.dkim, c.dmarc].filter((x: any) => x.status === "pass").length;
+    if (passes === 3) toast.success("All DNS checks passed");
+    else toast.message(`${passes}/3 DNS checks passed`, { description: "See inline results below." });
+  };
 
   useEffect(() => {
     if (!user) return;
