@@ -160,6 +160,117 @@ export type Database = {
         }
         Relationships: []
       }
+      job_alert_runs: {
+        Row: {
+          error: string | null
+          id: string
+          new_count: number
+          ran_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          new_count?: number
+          ran_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          new_count?: number
+          ran_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      job_preferences: {
+        Row: {
+          created_at: string
+          email_digest: boolean
+          locations: string[]
+          min_match_score: number
+          updated_at: string
+          user_id: string
+          work_mode: string
+        }
+        Insert: {
+          created_at?: string
+          email_digest?: boolean
+          locations?: string[]
+          min_match_score?: number
+          updated_at?: string
+          user_id: string
+          work_mode?: string
+        }
+        Update: {
+          created_at?: string
+          email_digest?: boolean
+          locations?: string[]
+          min_match_score?: number
+          updated_at?: string
+          user_id?: string
+          work_mode?: string
+        }
+        Relationships: []
+      }
+      job_recommendations: {
+        Row: {
+          company: string
+          created_at: string
+          description: string | null
+          dismissed_at: string | null
+          id: string
+          location: string | null
+          match_reasons: string[]
+          match_score: number
+          min_gpa: number | null
+          required_skills: string[]
+          seen_at: string | null
+          source: string
+          title: string
+          user_id: string
+          work_mode: string | null
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          description?: string | null
+          dismissed_at?: string | null
+          id?: string
+          location?: string | null
+          match_reasons?: string[]
+          match_score: number
+          min_gpa?: number | null
+          required_skills?: string[]
+          seen_at?: string | null
+          source?: string
+          title: string
+          user_id: string
+          work_mode?: string | null
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          description?: string | null
+          dismissed_at?: string | null
+          id?: string
+          location?: string | null
+          match_reasons?: string[]
+          match_score?: number
+          min_gpa?: number | null
+          required_skills?: string[]
+          seen_at?: string | null
+          source?: string
+          title?: string
+          user_id?: string
+          work_mode?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
