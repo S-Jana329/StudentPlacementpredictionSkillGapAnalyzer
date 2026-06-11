@@ -259,15 +259,31 @@ const EmailSettings = () => {
             <div className="space-y-2 sm:col-span-2">
               <div className="flex items-center justify-between gap-2">
                 <Label htmlFor="domain">Sender domain</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={verifyDns}
-                  disabled={verifying || !s.sender_domain}
-                >
-                  {verifying ? <><Loader2 className="animate-spin mr-1.5" size={12} /> Checking...</> : <><ShieldCheck className="mr-1.5" size={12} /> Verify DNS</>}
-                </Button>
+                {(() => {
+                  const cooldown = retryAt ? Math.max(0, Math.ceil((retryAt - now) / 1000)) : 0;
+                  const blocked = verifying || !s.sender_domain || cooldown > 0;
+                  const isRetry = attempt > 0 && (dnsError || (dnsResult && [dnsResult.checks.spf, dnsResult.checks.dkim, dnsResult.checks.dmarc].some((c) => c.status !== "pass")));
+                  return (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={verifyDns}
+                      disabled={blocked}
+                      title={cooldown > 0 ? `Retry available in ${cooldown}s` : undefined}
+                    >
+                      {verifying ? (
+                        <><Loader2 className="animate-spin mr-1.5" size={12} /> Checking...</>
+                      ) : cooldown > 0 ? (
+                        <><ShieldAlert className="mr-1.5" size={12} /> Retry in {cooldown}s</>
+                      ) : isRetry ? (
+                        <><ShieldAlert className="mr-1.5" size={12} /> Retry verification</>
+                      ) : (
+                        <><ShieldCheck className="mr-1.5" size={12} /> Verify DNS</>
+                      )}
+                    </Button>
+                  );
+                })()}
               </div>
               <Input
                 id="domain"
@@ -277,6 +293,7 @@ const EmailSettings = () => {
                 onChange={(e) => {
                   update("sender_domain", e.target.value.trim().toLowerCase());
                   setDnsResult(null);
+                  resetRetry();
                 }}
               />
               {errors.sender_domain && (
@@ -284,6 +301,21 @@ const EmailSettings = () => {
                   <AlertCircle size={12} /> {errors.sender_domain}
                 </p>
               )}
+              {dnsError && (
+                <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs font-body text-destructive flex items-start gap-2">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="font-medium">DNS verification failed (attempt {attempt})</p>
+                    <p className="mt-0.5 text-destructive/90">{dnsError}</p>
+                    {retryAt && now < retryAt && (
+                      <p className="mt-0.5 text-muted-foreground">
+                        Backing off — retry available in {Math.max(0, Math.ceil((retryAt - now) / 1000))}s.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {dnsResult && (
                 <div className="mt-2 rounded-md border border-border divide-y divide-border overflow-hidden">
                   {(["spf", "dkim", "dmarc"] as const).map((k) => {
