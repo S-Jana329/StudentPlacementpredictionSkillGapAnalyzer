@@ -57,6 +57,10 @@ const EmailSettings = () => {
   const [saved, setSaved] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [verifying, setVerifying] = useState(false);
+  const [dnsError, setDnsError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [retryAt, setRetryAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
   const [dnsResult, setDnsResult] = useState<{
     domain: string;
     checkedAt: string;
@@ -67,6 +71,16 @@ const EmailSettings = () => {
     };
   } | null>(null);
 
+  useEffect(() => {
+    if (!retryAt) return;
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [retryAt]);
+
+  // Exponential backoff: 2s, 4s, 8s, 16s, capped at 30s
+  const backoffMs = (n: number) => Math.min(30_000, 2_000 * Math.pow(2, Math.max(0, n - 1)));
+  const TIMEOUT_MS = 15_000;
+
   const verifyDns = async () => {
     const domain = s.sender_domain.trim().toLowerCase();
     if (!domain || !domainRegex.test(domain)) {
@@ -74,20 +88,56 @@ const EmailSettings = () => {
       toast.error("Enter a valid domain first.");
       return;
     }
+    if (retryAt && Date.now() < retryAt) return;
+
     setVerifying(true);
+    setDnsError(null);
     setDnsResult(null);
-    const { data, error } = await supabase.functions.invoke("verify-email-dns", { body: { domain } });
-    setVerifying(false);
-    if (error) {
-      toast.error("DNS check failed", { description: error.message });
-      return;
+    setRetryAt(null);
+    const thisAttempt = attempt + 1;
+    setAttempt(thisAttempt);
+
+    try {
+      const invocation = supabase.functions.invoke("verify-email-dns", { body: { domain } });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Request timed out after 15s.")), TIMEOUT_MS),
+      );
+      const { data, error } = (await Promise.race([invocation, timeout])) as Awaited<typeof invocation>;
+      if (error) throw new Error(error.message || "Edge function returned an error.");
+      if (!data?.checks) throw new Error("Malformed response from DNS verification.");
+
+      setDnsResult(data);
+      const c = data.checks;
+      const passes = [c.spf, c.dkim, c.dmarc].filter((x: any) => x.status === "pass").length;
+      if (passes === 3) {
+        setAttempt(0);
+        toast.success("All DNS checks passed");
+      } else {
+        const next = Date.now() + backoffMs(thisAttempt);
+        setRetryAt(next);
+        toast.message(`${passes}/3 DNS checks passed`, {
+          description: `You can retry in ${Math.ceil(backoffMs(thisAttempt) / 1000)}s.`,
+        });
+      }
+    } catch (e) {
+      const msg = (e as Error).message || "DNS check failed.";
+      setDnsError(msg);
+      const next = Date.now() + backoffMs(thisAttempt);
+      setRetryAt(next);
+      toast.error("DNS check failed", {
+        description: `${msg} Retry available in ${Math.ceil(backoffMs(thisAttempt) / 1000)}s.`,
+      });
+    } finally {
+      setVerifying(false);
     }
-    setDnsResult(data);
-    const c = data.checks;
-    const passes = [c.spf, c.dkim, c.dmarc].filter((x: any) => x.status === "pass").length;
-    if (passes === 3) toast.success("All DNS checks passed");
-    else toast.message(`${passes}/3 DNS checks passed`, { description: "See inline results below." });
   };
+
+  const resetRetry = () => {
+    setAttempt(0);
+    setRetryAt(null);
+    setDnsError(null);
+  };
+
 
   useEffect(() => {
     if (!user) return;
