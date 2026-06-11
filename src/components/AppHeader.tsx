@@ -2,12 +2,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Button } from "@/components/ui/button";
+import NotificationBell from "@/components/NotificationBell";
 
 const baseLinks = [
   { to: "/", label: "Students" },
   { to: "/resume", label: "Resume Analyzer" },
   { to: "/interview", label: "Interview Coach" },
   { to: "/roadmap", label: "Career Roadmap" },
+  { to: "/jobs", label: "Jobs" },
   { to: "/assistant", label: "Assistant" },
   { to: "/reports", label: "Reports" },
   { to: "/settings/email", label: "Email Settings" },
@@ -44,6 +46,7 @@ const AppHeader = () => {
       <div className="flex items-center gap-3">
         {user ? (
           <>
+            <NotificationBell />
             <span className="text-xs font-body text-muted-foreground hidden sm:inline">{user.email}</span>
             <Button variant="outline" size="sm" onClick={async () => { await signOut(); navigate("/auth"); }}>
               Sign out

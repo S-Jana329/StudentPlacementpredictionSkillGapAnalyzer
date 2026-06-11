@@ -15,6 +15,7 @@ import CareerRoadmap from "./pages/CareerRoadmap.tsx";
 import CareerAssistant from "./pages/CareerAssistant.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import EmailSettings from "./pages/EmailSettings.tsx";
+import JobAlerts from "./pages/JobAlerts.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminRoute><AdminDashboard /></AdminRoute></ProtectedRoute>} />
             <Route path="/settings/email" element={<ProtectedRoute><EmailSettings /></ProtectedRoute>} />
+            <Route path="/jobs" element={<ProtectedRoute><JobAlerts /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
