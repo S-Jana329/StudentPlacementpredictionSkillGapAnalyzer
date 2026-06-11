@@ -161,6 +161,9 @@ const EmailSettings = () => {
         ? `Notifications will send from ${s.from_local_part}@${s.sender_domain}.`
         : "Add a sender domain to start sending notifications.",
     });
+    if (s.sender_domain && domainRegex.test(s.sender_domain)) {
+      verifyDns();
+    }
   };
 
 
