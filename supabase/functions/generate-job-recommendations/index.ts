@@ -43,9 +43,14 @@ Deno.serve(async (req) => {
     }
 
     if (body?.all === true) {
-      // Cron path: require shared secret to prevent unauthenticated abuse
+      // Cron path: require shared secret stored in the internal app_secrets table
       const cronSecret = req.headers.get("x-cron-secret");
-      const expected = Deno.env.get("CRON_SECRET");
+      const { data: secretRow } = await admin
+        .from("app_secrets")
+        .select("value")
+        .eq("name", "cron_secret")
+        .maybeSingle();
+      const expected = (secretRow as { value?: string } | null)?.value ?? Deno.env.get("CRON_SECRET");
       if (!expected || !cronSecret || cronSecret !== expected) {
         return j({ error: "Forbidden" }, 403);
       }
