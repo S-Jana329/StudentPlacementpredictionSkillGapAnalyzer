@@ -21,7 +21,9 @@ const AppHeader = () => {
   const { user, signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
 
-  const links = isAdmin ? [...baseLinks, { to: "/admin", label: "Admin" }] : baseLinks;
+  const links = isAdmin
+    ? [...baseLinks, { to: "/admin", label: "Admin" }, { to: "/admin/job-matches", label: "Job Matches" }]
+    : baseLinks;
 
   return (
     <header className="border-b border-border bg-card px-6 py-3 flex items-center justify-between">
