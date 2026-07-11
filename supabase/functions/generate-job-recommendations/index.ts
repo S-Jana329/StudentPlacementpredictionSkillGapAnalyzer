@@ -43,7 +43,12 @@ Deno.serve(async (req) => {
     }
 
     if (body?.all === true) {
-      // Cron path: every student with at least one completed resume analysis
+      // Cron path: require shared secret to prevent unauthenticated abuse
+      const cronSecret = req.headers.get("x-cron-secret");
+      const expected = Deno.env.get("CRON_SECRET");
+      if (!expected || !cronSecret || cronSecret !== expected) {
+        return j({ error: "Forbidden" }, 403);
+      }
       const { data: rows } = await admin
         .from("resume_analyses")
         .select("user_id")
