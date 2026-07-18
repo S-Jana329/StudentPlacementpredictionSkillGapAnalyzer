@@ -65,30 +65,79 @@ function toCSV(rows: Row[]) {
   return lines.join("\n");
 }
 
+const PAGE_SIZE = 50;
+
 const AdminJobMatches = () => {
   const { isAdmin, loading: adminLoading } = useIsAdmin();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState<"all" | "unseen" | "seen" | "dismissed">("all");
   const [days, setDays] = useState<"7" | "30" | "90" | "all">("30");
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [aggregates, setAggregates] = useState({ students: 0, avg: 0, unseen: 0 });
+
+  // Debounce search input to avoid a request per keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, status, days]);
 
   const load = async () => {
     if (!isAdmin) return;
     setLoading(true);
     try {
-      let q = supabase
-        .from("job_recommendations")
-        .select("id, user_id, title, company, location, work_mode, match_score, required_skills, match_reasons, source, seen_at, dismissed_at, created_at")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (days !== "all") {
-        const since = new Date(Date.now() - Number(days) * 24 * 3600 * 1000).toISOString();
-        q = q.gte("created_at", since);
-      }
-      const { data: recs, error } = await q;
+      const sinceIso =
+        days !== "all"
+          ? new Date(Date.now() - Number(days) * 24 * 3600 * 1000).toISOString()
+          : null;
+
+      const applyFilters = <T extends {
+        gte: (c: string, v: string) => T;
+        is: (c: string, v: null) => T;
+        not: (c: string, o: string, v: null) => T;
+        or: (s: string) => T;
+      }>(qb: T): T => {
+        let out = qb;
+        if (sinceIso) out = out.gte("created_at", sinceIso);
+        if (status === "unseen") out = out.is("seen_at", null).is("dismissed_at", null);
+        else if (status === "seen") out = out.not("seen_at", "is", null);
+        else if (status === "dismissed") out = out.not("dismissed_at", "is", null);
+        if (debouncedSearch) {
+          const s = debouncedSearch.replace(/[%,()]/g, "");
+          out = out.or(`title.ilike.%${s}%,company.ilike.%${s}%`);
+        }
+        return out;
+      };
+
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      const pageQuery = applyFilters(
+        supabase
+          .from("job_recommendations")
+          .select(
+            "id, user_id, title, company, location, work_mode, match_score, required_skills, match_reasons, source, seen_at, dismissed_at, created_at",
+            { count: "exact" },
+          )
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to) as unknown as never,
+      ) as unknown as ReturnType<typeof supabase.from>;
+
+      const { data: recs, error, count } = await (pageQuery as unknown as Promise<{
+        data: Match[] | null; error: Error | null; count: number | null;
+      }>);
       if (error) throw error;
       const list = (recs ?? []) as Match[];
+      setTotal(count ?? 0);
 
       const ids = Array.from(new Set(list.map((r) => r.user_id)));
       let profilesById = new Map<string, Profile>();
@@ -108,10 +157,46 @@ const AdminJobMatches = () => {
     }
   };
 
+  // Aggregate stats across the full filtered set (not just current page)
+  const loadAggregates = async () => {
+    if (!isAdmin) return;
+    try {
+      const sinceIso =
+        days !== "all"
+          ? new Date(Date.now() - Number(days) * 24 * 3600 * 1000).toISOString()
+          : null;
+      let q = supabase
+        .from("job_recommendations")
+        .select("user_id, match_score, seen_at, dismissed_at");
+      if (sinceIso) q = q.gte("created_at", sinceIso);
+      if (status === "unseen") q = q.is("seen_at", null).is("dismissed_at", null);
+      else if (status === "seen") q = q.not("seen_at", "is", null);
+      else if (status === "dismissed") q = q.not("dismissed_at", "is", null);
+      if (debouncedSearch) {
+        const s = debouncedSearch.replace(/[%,()]/g, "");
+        q = q.or(`title.ilike.%${s}%,company.ilike.%${s}%`);
+      }
+      const { data, error } = await q.limit(10000);
+      if (error) throw error;
+      const arr = data ?? [];
+      const students = new Set(arr.map((r) => r.user_id)).size;
+      const avg = arr.length
+        ? Math.round(arr.reduce((s, r) => s + (r.match_score ?? 0), 0) / arr.length)
+        : 0;
+      const unseen = arr.filter((r) => !r.seen_at && !r.dismissed_at).length;
+      setAggregates({ students, avg, unseen });
+    } catch {
+      // stats are best-effort
+    }
+  };
+
   useEffect(() => {
-    if (!adminLoading && isAdmin) load();
+    if (!adminLoading && isAdmin) {
+      load();
+      loadAggregates();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, adminLoading, isAdmin]);
+  }, [days, status, debouncedSearch, page, adminLoading, isAdmin]);
 
   if (adminLoading) {
     return (
@@ -122,31 +207,15 @@ const AdminJobMatches = () => {
   }
   if (!isAdmin) return <Navigate to="/" replace />;
 
+  const filtered = rows;
+  const stats = {
+    total,
+    students: aggregates.students,
+    avg: aggregates.avg,
+    unseen: aggregates.unseen,
+  };
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (status === "unseen" && r.seen_at) return false;
-      if (status === "seen" && !r.seen_at) return false;
-      if (status === "dismissed" && !r.dismissed_at) return false;
-      if (!q) return true;
-      return (
-        r.title.toLowerCase().includes(q) ||
-        r.company.toLowerCase().includes(q) ||
-        (r.profile?.full_name ?? "").toLowerCase().includes(q) ||
-        (r.profile?.email ?? "").toLowerCase().includes(q) ||
-        (r.profile?.department ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [rows, search, status]);
-
-  const stats = useMemo(() => {
-    const total = filtered.length;
-    const students = new Set(filtered.map((r) => r.user_id)).size;
-    const avg = total ? Math.round(filtered.reduce((s, r) => s + r.match_score, 0) / total) : 0;
-    const unseen = filtered.filter((r) => !r.seen_at && !r.dismissed_at).length;
-    return { total, students, avg, unseen };
-  }, [filtered]);
 
   const handleExport = () => {
     const csv = toCSV(filtered);
