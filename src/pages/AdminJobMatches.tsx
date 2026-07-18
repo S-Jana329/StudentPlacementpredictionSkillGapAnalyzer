@@ -354,6 +354,34 @@ const AdminJobMatches = () => {
               </tbody>
             </table>
           </div>
+          <div className="flex items-center justify-between border-t border-border px-4 py-3 text-xs font-body text-muted-foreground">
+            <div>
+              {total === 0
+                ? "0 results"
+                : `Showing ${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, total)} of ${total}`}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={loading || page === 0}
+              >
+                Previous
+              </Button>
+              <span>
+                Page {page + 1} / {pageCount}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => (p + 1 < pageCount ? p + 1 : p))}
+                disabled={loading || page + 1 >= pageCount}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
