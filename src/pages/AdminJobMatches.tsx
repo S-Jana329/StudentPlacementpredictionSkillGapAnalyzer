@@ -66,6 +66,7 @@ function toCSV(rows: Row[]) {
 }
 
 const AdminJobMatches = () => {
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -73,6 +74,7 @@ const AdminJobMatches = () => {
   const [days, setDays] = useState<"7" | "30" | "90" | "all">("30");
 
   const load = async () => {
+    if (!isAdmin) return;
     setLoading(true);
     try {
       let q = supabase
