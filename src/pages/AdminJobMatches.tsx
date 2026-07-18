@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { Navigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 type Profile = {
   id: string;
@@ -64,6 +66,7 @@ function toCSV(rows: Row[]) {
 }
 
 const AdminJobMatches = () => {
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -71,6 +74,7 @@ const AdminJobMatches = () => {
   const [days, setDays] = useState<"7" | "30" | "90" | "all">("30");
 
   const load = async () => {
+    if (!isAdmin) return;
     setLoading(true);
     try {
       let q = supabase
@@ -105,9 +109,19 @@ const AdminJobMatches = () => {
   };
 
   useEffect(() => {
-    load();
+    if (!adminLoading && isAdmin) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days]);
+  }, [days, adminLoading, isAdmin]);
+
+  if (adminLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-sm text-muted-foreground font-body">Checking permissions...</p>
+      </div>
+    );
+  }
+  if (!isAdmin) return <Navigate to="/" replace />;
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
