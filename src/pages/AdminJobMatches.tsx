@@ -98,43 +98,28 @@ const AdminJobMatches = () => {
         days !== "all"
           ? new Date(Date.now() - Number(days) * 24 * 3600 * 1000).toISOString()
           : null;
-
-      const applyFilters = <T extends {
-        gte: (c: string, v: string) => T;
-        is: (c: string, v: null) => T;
-        not: (c: string, o: string, v: null) => T;
-        or: (s: string) => T;
-      }>(qb: T): T => {
-        let out = qb;
-        if (sinceIso) out = out.gte("created_at", sinceIso);
-        if (status === "unseen") out = out.is("seen_at", null).is("dismissed_at", null);
-        else if (status === "seen") out = out.not("seen_at", "is", null);
-        else if (status === "dismissed") out = out.not("dismissed_at", "is", null);
-        if (debouncedSearch) {
-          const s = debouncedSearch.replace(/[%,()]/g, "");
-          out = out.or(`title.ilike.%${s}%,company.ilike.%${s}%`);
-        }
-        return out;
-      };
+      const searchTerm = debouncedSearch.replace(/[%,()]/g, "");
 
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      const pageQuery = applyFilters(
-        supabase
-          .from("job_recommendations")
-          .select(
-            "id, user_id, title, company, location, work_mode, match_score, required_skills, match_reasons, source, seen_at, dismissed_at, created_at",
-            { count: "exact" },
-          )
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false })
-          .range(from, to) as unknown as never,
-      ) as unknown as ReturnType<typeof supabase.from>;
+      let q = supabase
+        .from("job_recommendations")
+        .select(
+          "id, user_id, title, company, location, work_mode, match_score, required_skills, match_reasons, source, seen_at, dismissed_at, created_at",
+          { count: "exact" },
+        )
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to);
 
-      const { data: recs, error, count } = await (pageQuery as unknown as Promise<{
-        data: Match[] | null; error: Error | null; count: number | null;
-      }>);
+      if (sinceIso) q = q.gte("created_at", sinceIso);
+      if (status === "unseen") q = q.is("seen_at", null).is("dismissed_at", null);
+      else if (status === "seen") q = q.not("seen_at", "is", null);
+      else if (status === "dismissed") q = q.not("dismissed_at", "is", null);
+      if (searchTerm) q = q.or(`title.ilike.%${searchTerm}%,company.ilike.%${searchTerm}%`);
+
+      const { data: recs, error, count } = await q;
       if (error) throw error;
       const list = (recs ?? []) as Match[];
       setTotal(count ?? 0);
@@ -156,6 +141,7 @@ const AdminJobMatches = () => {
       setLoading(false);
     }
   };
+
 
   // Aggregate stats across the full filtered set (not just current page)
   const loadAggregates = async () => {
