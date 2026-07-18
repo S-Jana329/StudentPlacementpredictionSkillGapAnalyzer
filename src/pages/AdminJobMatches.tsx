@@ -251,7 +251,7 @@ const AdminJobMatches = () => {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search student, email, dept, title, or company..."
+              placeholder="Search title or company..."
             />
           </div>
           <div>
