@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
