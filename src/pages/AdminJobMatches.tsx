@@ -109,9 +109,19 @@ const AdminJobMatches = () => {
   };
 
   useEffect(() => {
-    load();
+    if (!adminLoading && isAdmin) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days]);
+  }, [days, adminLoading, isAdmin]);
+
+  if (adminLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-sm text-muted-foreground font-body">Checking permissions...</p>
+      </div>
+    );
+  }
+  if (!isAdmin) return <Navigate to="/" replace />;
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
