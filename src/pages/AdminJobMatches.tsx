@@ -4,9 +4,27 @@ import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, Eye, EyeOff, Ban, RotateCcw, History } from "lucide-react";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useAuth } from "@/hooks/useAuth";
+
+type AuditEntry = {
+  id: string;
+  job_recommendation_id: string;
+  admin_user_id: string;
+  admin_email: string | null;
+  action: string;
+  previous_status: string;
+  new_status: string;
+  created_at: string;
+};
+
+type StatusName = "new" | "seen" | "dismissed";
+type ActionName = "mark_seen" | "mark_unseen" | "dismiss" | "undismiss";
+
+const statusOf = (r: { seen_at: string | null; dismissed_at: string | null }): StatusName =>
+  r.dismissed_at ? "dismissed" : r.seen_at ? "seen" : "new";
 
 type Profile = {
   id: string;
