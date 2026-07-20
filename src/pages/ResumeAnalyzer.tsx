@@ -192,7 +192,7 @@ const ResumeAnalyzer = () => {
         </aside>
 
         {/* Detail */}
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-8">
           {!selected ? (
             <div className="h-full flex items-center justify-center">
               <p className="text-sm text-muted-foreground font-body">

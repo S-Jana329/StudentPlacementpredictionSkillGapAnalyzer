@@ -168,7 +168,7 @@ const JobAlerts = () => {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <main className="max-w-5xl mx-auto p-8 space-y-6">
+      <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
