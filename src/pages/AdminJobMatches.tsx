@@ -326,6 +326,9 @@ const AdminJobMatches = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowAudit((s) => !s)}>
+              <History size={14} /> {showAudit ? "Hide" : "View"} Audit Log
+            </Button>
             <Button variant="outline" size="sm" onClick={load} disabled={loading}>
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
             </Button>
