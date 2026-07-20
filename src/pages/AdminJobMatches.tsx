@@ -398,24 +398,28 @@ const AdminJobMatches = () => {
                   <Th>Location</Th>
                   <Th className="text-right">Score</Th>
                   <Th>Status</Th>
+                  <Th>Actions</Th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                    <td colSpan={10} className="px-4 py-8 text-center text-xs text-muted-foreground">
                       Loading matches...
                     </td>
                   </tr>
                 )}
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                    <td colSpan={10} className="px-4 py-8 text-center text-xs text-muted-foreground">
                       No matches found for the current filters.
                     </td>
                   </tr>
                 )}
-                {!loading && filtered.map((r) => (
+                {!loading && filtered.map((r) => {
+                  const s = statusOf(r);
+                  const busy = pendingId === r.id;
+                  return (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                     <Td className="whitespace-nowrap text-xs text-muted-foreground">{fmt(r.created_at)}</Td>
                     <Td>
@@ -443,16 +447,44 @@ const AdminJobMatches = () => {
                       </span>
                     </Td>
                     <Td className="text-xs">
-                      {r.dismissed_at ? (
+                      {s === "dismissed" ? (
                         <span className="text-destructive">Dismissed</span>
-                      ) : r.seen_at ? (
+                      ) : s === "seen" ? (
                         <span className="text-muted-foreground">Seen</span>
                       ) : (
                         <span className="text-primary font-medium">New</span>
                       )}
                     </Td>
+                    <Td>
+                      <div className="flex items-center gap-1">
+                        {s !== "seen" && (
+                          <Button size="sm" variant="ghost" className="h-7 px-2" disabled={busy}
+                            onClick={() => applyAction(r, "mark_seen")} title="Mark as seen">
+                            <Eye size={13} />
+                          </Button>
+                        )}
+                        {s === "seen" && (
+                          <Button size="sm" variant="ghost" className="h-7 px-2" disabled={busy}
+                            onClick={() => applyAction(r, "mark_unseen")} title="Mark as new">
+                            <EyeOff size={13} />
+                          </Button>
+                        )}
+                        {s !== "dismissed" ? (
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" disabled={busy}
+                            onClick={() => applyAction(r, "dismiss")} title="Dismiss">
+                            <Ban size={13} />
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" className="h-7 px-2" disabled={busy}
+                            onClick={() => applyAction(r, "undismiss")} title="Restore">
+                            <RotateCcw size={13} />
+                          </Button>
+                        )}
+                      </div>
+                    </Td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
