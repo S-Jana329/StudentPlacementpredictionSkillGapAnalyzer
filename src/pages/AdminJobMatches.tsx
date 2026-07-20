@@ -517,6 +517,55 @@ const AdminJobMatches = () => {
             </div>
           </div>
         </div>
+
+        {showAudit && (
+          <div className="section-card p-0 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div>
+                <h2 className="font-display text-sm font-bold text-foreground">Admin Audit Log</h2>
+                <p className="text-xs text-muted-foreground font-body">Latest 100 status changes made by admins</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={loadAudit} disabled={auditLoading}>
+                <RefreshCw size={13} className={auditLoading ? "animate-spin" : ""} /> Refresh
+              </Button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm font-body">
+                <thead className="bg-muted/50 text-xs text-muted-foreground">
+                  <tr>
+                    <Th>When</Th>
+                    <Th>Admin</Th>
+                    <Th>Action</Th>
+                    <Th>Previous</Th>
+                    <Th>New</Th>
+                    <Th>Match ID</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLoading && (
+                    <tr><td colSpan={6} className="px-4 py-6 text-center text-xs text-muted-foreground">Loading audit log...</td></tr>
+                  )}
+                  {!auditLoading && audit.length === 0 && (
+                    <tr><td colSpan={6} className="px-4 py-6 text-center text-xs text-muted-foreground">No audit entries yet.</td></tr>
+                  )}
+                  {!auditLoading && audit.map((a) => (
+                    <tr key={a.id} className="border-t border-border hover:bg-muted/30">
+                      <Td className="whitespace-nowrap text-xs text-muted-foreground">{fmt(a.created_at)}</Td>
+                      <Td className="text-xs">
+                        <div className="font-medium text-foreground">{a.admin_email ?? "—"}</div>
+                        <div className="text-muted-foreground font-mono">{a.admin_user_id.slice(0, 8)}</div>
+                      </Td>
+                      <Td className="text-xs font-medium">{a.action.replace(/_/g, " ")}</Td>
+                      <Td className="text-xs text-muted-foreground">{a.previous_status}</Td>
+                      <Td className="text-xs text-foreground">{a.new_status}</Td>
+                      <Td className="text-xs text-muted-foreground font-mono">{a.job_recommendation_id.slice(0, 8)}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
