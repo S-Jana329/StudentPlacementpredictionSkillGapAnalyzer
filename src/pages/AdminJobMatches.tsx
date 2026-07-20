@@ -199,6 +199,77 @@ const AdminJobMatches = () => {
     }
   };
 
+  const loadAudit = async () => {
+    if (!isAdmin) return;
+    setAuditLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("job_match_audit_log")
+        .select("id, job_recommendation_id, admin_user_id, admin_email, action, previous_status, new_status, created_at")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setAudit((data ?? []) as AuditEntry[]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load audit log");
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  const applyAction = async (row: Row, action: ActionName) => {
+    if (!user) return;
+    const prev = statusOf(row);
+    let newStatus: StatusName;
+    const patch: { seen_at?: string | null; dismissed_at?: string | null } = {};
+    const nowIso = new Date().toISOString();
+    switch (action) {
+      case "mark_seen":
+        patch.seen_at = nowIso;
+        patch.dismissed_at = null;
+        newStatus = "seen";
+        break;
+      case "mark_unseen":
+        patch.seen_at = null;
+        patch.dismissed_at = null;
+        newStatus = "new";
+        break;
+      case "dismiss":
+        patch.dismissed_at = nowIso;
+        newStatus = "dismissed";
+        break;
+      case "undismiss":
+        patch.dismissed_at = null;
+        newStatus = row.seen_at ? "seen" : "new";
+        break;
+    }
+    if (prev === newStatus) return;
+    setPendingId(row.id);
+    try {
+      const { error: upErr } = await supabase
+        .from("job_recommendations")
+        .update(patch)
+        .eq("id", row.id);
+      if (upErr) throw upErr;
+      const { error: logErr } = await supabase.from("job_match_audit_log").insert({
+        job_recommendation_id: row.id,
+        admin_user_id: user.id,
+        admin_email: user.email ?? null,
+        action,
+        previous_status: prev,
+        new_status: newStatus,
+      });
+      if (logErr) throw logErr;
+      setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, ...patch } : r)));
+      toast.success(`Marked as ${newStatus}`);
+      if (showAudit) loadAudit();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Update failed");
+    } finally {
+      setPendingId(null);
+    }
+  };
+
   useEffect(() => {
     if (!adminLoading && isAdmin) {
       load();
@@ -206,6 +277,11 @@ const AdminJobMatches = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days, status, debouncedSearch, page, adminLoading, isAdmin]);
+
+  useEffect(() => {
+    if (showAudit && isAdmin && !adminLoading) loadAudit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAudit, isAdmin, adminLoading]);
 
   if (adminLoading) {
     return (
