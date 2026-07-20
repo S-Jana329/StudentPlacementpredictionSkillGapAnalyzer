@@ -87,6 +87,7 @@ const PAGE_SIZE = 50;
 
 const AdminJobMatches = () => {
   const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const { user } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -96,6 +97,10 @@ const AdminJobMatches = () => {
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [aggregates, setAggregates] = useState({ students: 0, avg: 0, unseen: 0 });
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   // Debounce search input to avoid a request per keystroke
   useEffect(() => {
