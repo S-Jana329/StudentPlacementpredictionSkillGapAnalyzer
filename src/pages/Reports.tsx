@@ -74,7 +74,7 @@ const Reports = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b border-border bg-card px-8 py-5 flex items-center justify-between">
+      <div className="border-b border-border bg-card px-4 sm:px-8 py-4 sm:py-5 flex items-center justify-between">
         <div>
           <h1 className="font-display text-xl font-bold text-foreground">Reports</h1>
           <p className="text-xs text-muted-foreground font-body mt-0.5">
@@ -89,7 +89,7 @@ const Reports = () => {
         </button>
       </div>
 
-      <div className="max-w-5xl mx-auto p-8 space-y-8">
+      <div className="max-w-5xl mx-auto p-4 sm:p-8 space-y-8">
         {/* Summary cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[

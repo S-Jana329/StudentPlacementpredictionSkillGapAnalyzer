@@ -176,7 +176,7 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-background">
       <AppHeader />
 
-      <div className="border-b border-border bg-card px-8 py-5">
+      <div className="border-b border-border bg-card px-4 sm:px-8 py-4 sm:py-5">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-xl font-bold text-foreground">Admin Dashboard</h1>
@@ -190,7 +190,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-8 space-y-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-8 space-y-6">
         {/* Filters */}
         <div className="section-card flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[180px]">

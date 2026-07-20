@@ -237,7 +237,7 @@ const EmailSettings = () => {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <main className="max-w-3xl mx-auto p-8 space-y-6">
+      <main className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
             <Mail size={22} /> Email Notifications

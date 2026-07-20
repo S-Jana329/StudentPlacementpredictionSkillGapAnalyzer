@@ -89,7 +89,7 @@
   }
 
   .section-card {
-    @apply bg-card rounded-lg border border-border p-6;
+    @apply bg-card rounded-lg border border-border p-4 sm:p-6;
   }
 
   .data-label {
@@ -104,6 +104,6 @@
 
   .stat-number {
     font-family: var(--font-display);
-    @apply text-2xl font-bold text-foreground;
+    @apply text-xl sm:text-2xl font-bold text-foreground;
   }
 }

@@ -145,7 +145,7 @@ const CareerRoadmap = () => {
         </aside>
 
         {/* Main */}
-        <section className="flex-1 overflow-y-auto p-8">
+        <section className="flex-1 overflow-y-auto p-4 sm:p-8">
           {showNew && (
             <div className="section-card max-w-2xl mb-6">
               <h2 className="font-display text-xl font-bold mb-4">New career roadmap</h2>
