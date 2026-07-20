@@ -205,6 +205,47 @@ export type Database = {
         }
         Relationships: []
       }
+      job_match_audit_log: {
+        Row: {
+          action: string
+          admin_email: string | null
+          admin_user_id: string
+          created_at: string
+          id: string
+          job_recommendation_id: string
+          new_status: string
+          previous_status: string
+        }
+        Insert: {
+          action: string
+          admin_email?: string | null
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          job_recommendation_id: string
+          new_status: string
+          previous_status: string
+        }
+        Update: {
+          action?: string
+          admin_email?: string | null
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          job_recommendation_id?: string
+          new_status?: string
+          previous_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_match_audit_log_job_recommendation_id_fkey"
+            columns: ["job_recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "job_recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_preferences: {
         Row: {
           created_at: string
