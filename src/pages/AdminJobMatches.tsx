@@ -4,9 +4,27 @@ import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, Eye, EyeOff, Ban, RotateCcw, History } from "lucide-react";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useAuth } from "@/hooks/useAuth";
+
+type AuditEntry = {
+  id: string;
+  job_recommendation_id: string;
+  admin_user_id: string;
+  admin_email: string | null;
+  action: string;
+  previous_status: string;
+  new_status: string;
+  created_at: string;
+};
+
+type StatusName = "new" | "seen" | "dismissed";
+type ActionName = "mark_seen" | "mark_unseen" | "dismiss" | "undismiss";
+
+const statusOf = (r: { seen_at: string | null; dismissed_at: string | null }): StatusName =>
+  r.dismissed_at ? "dismissed" : r.seen_at ? "seen" : "new";
 
 type Profile = {
   id: string;
@@ -69,6 +87,7 @@ const PAGE_SIZE = 50;
 
 const AdminJobMatches = () => {
   const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const { user } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -78,6 +97,10 @@ const AdminJobMatches = () => {
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [aggregates, setAggregates] = useState({ students: 0, avg: 0, unseen: 0 });
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   // Debounce search input to avoid a request per keystroke
   useEffect(() => {
@@ -176,6 +199,77 @@ const AdminJobMatches = () => {
     }
   };
 
+  const loadAudit = async () => {
+    if (!isAdmin) return;
+    setAuditLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("job_match_audit_log")
+        .select("id, job_recommendation_id, admin_user_id, admin_email, action, previous_status, new_status, created_at")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setAudit((data ?? []) as AuditEntry[]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load audit log");
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  const applyAction = async (row: Row, action: ActionName) => {
+    if (!user) return;
+    const prev = statusOf(row);
+    let newStatus: StatusName;
+    const patch: { seen_at?: string | null; dismissed_at?: string | null } = {};
+    const nowIso = new Date().toISOString();
+    switch (action) {
+      case "mark_seen":
+        patch.seen_at = nowIso;
+        patch.dismissed_at = null;
+        newStatus = "seen";
+        break;
+      case "mark_unseen":
+        patch.seen_at = null;
+        patch.dismissed_at = null;
+        newStatus = "new";
+        break;
+      case "dismiss":
+        patch.dismissed_at = nowIso;
+        newStatus = "dismissed";
+        break;
+      case "undismiss":
+        patch.dismissed_at = null;
+        newStatus = row.seen_at ? "seen" : "new";
+        break;
+    }
+    if (prev === newStatus) return;
+    setPendingId(row.id);
+    try {
+      const { error: upErr } = await supabase
+        .from("job_recommendations")
+        .update(patch)
+        .eq("id", row.id);
+      if (upErr) throw upErr;
+      const { error: logErr } = await supabase.from("job_match_audit_log").insert({
+        job_recommendation_id: row.id,
+        admin_user_id: user.id,
+        admin_email: user.email ?? null,
+        action,
+        previous_status: prev,
+        new_status: newStatus,
+      });
+      if (logErr) throw logErr;
+      setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, ...patch } : r)));
+      toast.success(`Marked as ${newStatus}`);
+      if (showAudit) loadAudit();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Update failed");
+    } finally {
+      setPendingId(null);
+    }
+  };
+
   useEffect(() => {
     if (!adminLoading && isAdmin) {
       load();
@@ -183,6 +277,11 @@ const AdminJobMatches = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days, status, debouncedSearch, page, adminLoading, isAdmin]);
+
+  useEffect(() => {
+    if (showAudit && isAdmin && !adminLoading) loadAudit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAudit, isAdmin, adminLoading]);
 
   if (adminLoading) {
     return (
@@ -227,6 +326,9 @@ const AdminJobMatches = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowAudit((s) => !s)}>
+              <History size={14} /> {showAudit ? "Hide" : "View"} Audit Log
+            </Button>
             <Button variant="outline" size="sm" onClick={load} disabled={loading}>
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
             </Button>
@@ -296,24 +398,28 @@ const AdminJobMatches = () => {
                   <Th>Location</Th>
                   <Th className="text-right">Score</Th>
                   <Th>Status</Th>
+                  <Th>Actions</Th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                    <td colSpan={10} className="px-4 py-8 text-center text-xs text-muted-foreground">
                       Loading matches...
                     </td>
                   </tr>
                 )}
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                    <td colSpan={10} className="px-4 py-8 text-center text-xs text-muted-foreground">
                       No matches found for the current filters.
                     </td>
                   </tr>
                 )}
-                {!loading && filtered.map((r) => (
+                {!loading && filtered.map((r) => {
+                  const s = statusOf(r);
+                  const busy = pendingId === r.id;
+                  return (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                     <Td className="whitespace-nowrap text-xs text-muted-foreground">{fmt(r.created_at)}</Td>
                     <Td>
@@ -341,16 +447,44 @@ const AdminJobMatches = () => {
                       </span>
                     </Td>
                     <Td className="text-xs">
-                      {r.dismissed_at ? (
+                      {s === "dismissed" ? (
                         <span className="text-destructive">Dismissed</span>
-                      ) : r.seen_at ? (
+                      ) : s === "seen" ? (
                         <span className="text-muted-foreground">Seen</span>
                       ) : (
                         <span className="text-primary font-medium">New</span>
                       )}
                     </Td>
+                    <Td>
+                      <div className="flex items-center gap-1">
+                        {s !== "seen" && (
+                          <Button size="sm" variant="ghost" className="h-7 px-2" disabled={busy}
+                            onClick={() => applyAction(r, "mark_seen")} title="Mark as seen">
+                            <Eye size={13} />
+                          </Button>
+                        )}
+                        {s === "seen" && (
+                          <Button size="sm" variant="ghost" className="h-7 px-2" disabled={busy}
+                            onClick={() => applyAction(r, "mark_unseen")} title="Mark as new">
+                            <EyeOff size={13} />
+                          </Button>
+                        )}
+                        {s !== "dismissed" ? (
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" disabled={busy}
+                            onClick={() => applyAction(r, "dismiss")} title="Dismiss">
+                            <Ban size={13} />
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" className="h-7 px-2" disabled={busy}
+                            onClick={() => applyAction(r, "undismiss")} title="Restore">
+                            <RotateCcw size={13} />
+                          </Button>
+                        )}
+                      </div>
+                    </Td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -383,6 +517,55 @@ const AdminJobMatches = () => {
             </div>
           </div>
         </div>
+
+        {showAudit && (
+          <div className="section-card p-0 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div>
+                <h2 className="font-display text-sm font-bold text-foreground">Admin Audit Log</h2>
+                <p className="text-xs text-muted-foreground font-body">Latest 100 status changes made by admins</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={loadAudit} disabled={auditLoading}>
+                <RefreshCw size={13} className={auditLoading ? "animate-spin" : ""} /> Refresh
+              </Button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm font-body">
+                <thead className="bg-muted/50 text-xs text-muted-foreground">
+                  <tr>
+                    <Th>When</Th>
+                    <Th>Admin</Th>
+                    <Th>Action</Th>
+                    <Th>Previous</Th>
+                    <Th>New</Th>
+                    <Th>Match ID</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLoading && (
+                    <tr><td colSpan={6} className="px-4 py-6 text-center text-xs text-muted-foreground">Loading audit log...</td></tr>
+                  )}
+                  {!auditLoading && audit.length === 0 && (
+                    <tr><td colSpan={6} className="px-4 py-6 text-center text-xs text-muted-foreground">No audit entries yet.</td></tr>
+                  )}
+                  {!auditLoading && audit.map((a) => (
+                    <tr key={a.id} className="border-t border-border hover:bg-muted/30">
+                      <Td className="whitespace-nowrap text-xs text-muted-foreground">{fmt(a.created_at)}</Td>
+                      <Td className="text-xs">
+                        <div className="font-medium text-foreground">{a.admin_email ?? "—"}</div>
+                        <div className="text-muted-foreground font-mono">{a.admin_user_id.slice(0, 8)}</div>
+                      </Td>
+                      <Td className="text-xs font-medium">{a.action.replace(/_/g, " ")}</Td>
+                      <Td className="text-xs text-muted-foreground">{a.previous_status}</Td>
+                      <Td className="text-xs text-foreground">{a.new_status}</Td>
+                      <Td className="text-xs text-muted-foreground font-mono">{a.job_recommendation_id.slice(0, 8)}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
