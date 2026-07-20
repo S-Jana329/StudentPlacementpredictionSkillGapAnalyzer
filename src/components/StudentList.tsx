@@ -42,8 +42,8 @@ const StudentList = ({
   return (
     <div className="panel-scaffold h-screen w-full flex flex-col">
       {/* Header */}
-      <div className="p-5 border-b border-border flex items-center justify-between">
-        <div>
+      <div className="p-4 sm:p-5 border-b border-border flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="font-display text-lg font-bold text-foreground tracking-tight">
             Student Placement
           </h1>
@@ -51,7 +51,7 @@ const StudentList = ({
             Prediction System
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap justify-end">
           <button
             onClick={() => navigate("/resume")}
             className="text-xs font-body text-primary hover:underline"

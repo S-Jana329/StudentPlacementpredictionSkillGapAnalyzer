@@ -7,8 +7,8 @@ interface StudentProfileProps {
 
 const StudentProfile = ({ student }: StudentProfileProps) => {
   return (
-    <div className="panel-stage h-screen overflow-y-auto">
-      <div className="max-w-3xl mx-auto p-8 space-y-6">
+    <div className="panel-stage h-full md:h-screen overflow-y-auto">
+      <div className="max-w-3xl mx-auto p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
         {/* Student Vitals */}
         <div className="section-card">
           <h2 className="font-display text-xl font-bold text-foreground mb-1">
