@@ -384,8 +384,9 @@ const AdminJobMatches = () => {
           </div>
         </div>
 
-        <div className="section-card p-0 overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="section-card p-0 overflow-hidden pb-16 md:pb-0">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm font-body">
               <thead className="bg-muted/50 text-xs text-muted-foreground">
                 <tr>
@@ -488,7 +489,92 @@ const AdminJobMatches = () => {
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between border-t border-border px-4 py-3 text-xs font-body text-muted-foreground">
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-border">
+            {loading && (
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">Loading matches...</div>
+            )}
+            {!loading && filtered.length === 0 && (
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+                No matches found for the current filters.
+              </div>
+            )}
+            {!loading && filtered.map((r) => {
+              const s = statusOf(r);
+              const busy = pendingId === r.id;
+              return (
+                <div key={r.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground truncate">{r.title}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {r.company}
+                        {r.location ? ` · ${r.location}` : ""}
+                        {r.work_mode ? ` · ${r.work_mode}` : ""}
+                      </div>
+                    </div>
+                    <span className={`shrink-0 inline-block px-2 py-1 rounded font-mono text-xs ${
+                      r.match_score >= 80 ? "bg-success/10 text-success"
+                      : r.match_score >= 60 ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground"
+                    }`}>
+                      {r.match_score}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    <div className="font-medium text-foreground">{r.profile?.full_name ?? "—"}</div>
+                    <div className="truncate">{r.profile?.email ?? r.user_id.slice(0, 8)}</div>
+                    <div className="mt-0.5">
+                      {r.profile?.department ?? "—"}
+                      {r.profile?.year ? ` · Y${r.profile.year}` : ""}
+                      {r.profile?.gpa != null ? ` · GPA ${r.profile.gpa}` : ""}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs">
+                      {s === "dismissed" ? (
+                        <span className="text-destructive font-medium">Dismissed</span>
+                      ) : s === "seen" ? (
+                        <span className="text-muted-foreground">Seen</span>
+                      ) : (
+                        <span className="text-primary font-medium">New</span>
+                      )}
+                      <span className="text-muted-foreground"> · {fmt(r.created_at)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {s !== "seen" && (
+                        <Button size="sm" variant="outline" className="h-10 min-w-10 px-3" disabled={busy}
+                          onClick={() => applyAction(r, "mark_seen")} aria-label="Mark as seen">
+                          <Eye size={16} />
+                        </Button>
+                      )}
+                      {s === "seen" && (
+                        <Button size="sm" variant="outline" className="h-10 min-w-10 px-3" disabled={busy}
+                          onClick={() => applyAction(r, "mark_unseen")} aria-label="Mark as new">
+                          <EyeOff size={16} />
+                        </Button>
+                      )}
+                      {s !== "dismissed" ? (
+                        <Button size="sm" variant="outline" className="h-10 min-w-10 px-3 text-destructive" disabled={busy}
+                          onClick={() => applyAction(r, "dismiss")} aria-label="Dismiss">
+                          <Ban size={16} />
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" className="h-10 min-w-10 px-3" disabled={busy}
+                          onClick={() => applyAction(r, "undismiss")} aria-label="Restore">
+                          <RotateCcw size={16} />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop inline pagination */}
+          <div className="hidden md:flex items-center justify-between border-t border-border px-4 py-3 text-xs font-body text-muted-foreground">
             <div>
               {total === 0
                 ? "0 results"
@@ -516,6 +602,36 @@ const AdminJobMatches = () => {
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Mobile fixed bottom pagination bar */}
+        <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 px-3 py-2 flex items-center justify-between gap-2 text-xs font-body">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 px-4"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={loading || page === 0}
+          >
+            Prev
+          </Button>
+          <div className="text-center text-muted-foreground">
+            <div>Page {page + 1} / {pageCount}</div>
+            <div className="text-[10px]">
+              {total === 0
+                ? "0 results"
+                : `${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, total)} of ${total}`}
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 px-4"
+            onClick={() => setPage((p) => (p + 1 < pageCount ? p + 1 : p))}
+            disabled={loading || page + 1 >= pageCount}
+          >
+            Next
+          </Button>
         </div>
 
         {showAudit && (
