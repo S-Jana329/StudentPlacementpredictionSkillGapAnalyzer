@@ -61,10 +61,20 @@
     @apply border-border;
   }
 
-  body {
+  html, body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    overflow-x: hidden;
+    max-width: 100vw;
   }
+
+  /* Prevent iOS zoom on focus for form controls */
+  @media (max-width: 767px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+  }
+
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
