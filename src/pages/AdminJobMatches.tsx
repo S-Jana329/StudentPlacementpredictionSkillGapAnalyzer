@@ -577,8 +577,12 @@ const AdminJobMatches = () => {
                       )}
                     </div>
                   </div>
+                </div>
+              );
+            })}
           </div>
           </PullToRefresh>
+
 
 
           {/* Desktop inline pagination */}
