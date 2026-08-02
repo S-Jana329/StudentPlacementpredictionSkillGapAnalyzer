@@ -491,7 +491,16 @@ const AdminJobMatches = () => {
           </div>
 
           {/* Mobile cards */}
-          <div className="md:hidden divide-y divide-border">
+          <PullToRefresh
+            className="md:hidden"
+            disabled={loading}
+            onRefresh={async () => {
+              await Promise.all([load(), loadAggregates()]);
+              if (showAudit) await loadAudit();
+            }}
+          >
+          <div className="divide-y divide-border">
+
             {loading && (
               <div className="px-4 py-8 text-center text-xs text-muted-foreground">Loading matches...</div>
             )}
