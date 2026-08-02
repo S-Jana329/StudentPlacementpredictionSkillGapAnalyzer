@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
+import PullToRefresh from "@/components/PullToRefresh";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -491,7 +493,16 @@ const AdminJobMatches = () => {
           </div>
 
           {/* Mobile cards */}
-          <div className="md:hidden divide-y divide-border">
+          <PullToRefresh
+            className="md:hidden"
+            disabled={loading}
+            onRefresh={async () => {
+              await Promise.all([load(), loadAggregates()]);
+              if (showAudit) await loadAudit();
+            }}
+          >
+          <div className="divide-y divide-border">
+
             {loading && (
               <div className="px-4 py-8 text-center text-xs text-muted-foreground">Loading matches...</div>
             )}
@@ -572,6 +583,9 @@ const AdminJobMatches = () => {
               );
             })}
           </div>
+          </PullToRefresh>
+
+
 
           {/* Desktop inline pagination */}
           <div className="hidden md:flex items-center justify-between border-t border-border px-4 py-3 text-xs font-body text-muted-foreground">
