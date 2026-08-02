@@ -25,6 +25,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; full_name?: string }>({});
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
@@ -34,9 +35,18 @@ const AuthPage = () => {
     e.preventDefault();
     const parsed = schema.safeParse({ email, password, full_name: fullName });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
+      const next: typeof errors = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as keyof typeof next;
+        if (key && !next[key]) next[key] = issue.message;
+      }
+      setErrors(next);
+      // Focus the first invalid field so mobile users land on the problem
+      document.getElementById(Object.keys(next)[0] === "full_name" ? "name" : Object.keys(next)[0])?.focus();
       return;
     }
+    setErrors({});
+
     setLoading(true);
     try {
       if (mode === "signup") {
