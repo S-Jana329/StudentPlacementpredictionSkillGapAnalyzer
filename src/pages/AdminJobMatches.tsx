@@ -577,10 +577,9 @@ const AdminJobMatches = () => {
                       )}
                     </div>
                   </div>
-                </div>
-              );
-            })}
           </div>
+          </PullToRefresh>
+
 
           {/* Desktop inline pagination */}
           <div className="hidden md:flex items-center justify-between border-t border-border px-4 py-3 text-xs font-body text-muted-foreground">
