@@ -97,21 +97,60 @@ const AuthPage = () => {
           Student Placement Prediction System
         </p>
 
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="space-y-4" noValidate>
           {mode === "signup" && (
             <div>
               <Label htmlFor="name">Full name</Label>
-              <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Jane Doe" />
+              <Input
+                id="name"
+                value={fullName}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  setErrors((p) => ({ ...p, full_name: undefined }));
+                }}
+                placeholder="Jane Doe"
+                aria-invalid={!!errors.full_name}
+                aria-describedby={errors.full_name ? "name-error" : undefined}
+              />
+              <FieldError id="name-error">{errors.full_name}</FieldError>
             </div>
           )}
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input
+              id="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrors((p) => ({ ...p, email: undefined }));
+              }}
+              required
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "email-error" : undefined}
+            />
+            <FieldError id="email-error">{errors.email}</FieldError>
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input
+              id="password"
+              type="password"
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrors((p) => ({ ...p, password: undefined }));
+              }}
+              required
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
+            />
+            <FieldError id="password-error">{errors.password}</FieldError>
           </div>
+
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Please wait..." : mode === "signin" ? "Sign in" : "Create account"}
           </Button>
