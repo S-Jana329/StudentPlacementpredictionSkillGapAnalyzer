@@ -73,7 +73,28 @@
     input, select, textarea {
       font-size: 16px !important;
     }
+
+    /* Thicker, high-contrast focus outlines on touch devices */
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    button:focus-visible,
+    [role="combobox"]:focus,
+    [role="combobox"]:focus-visible {
+      outline: 3px solid hsl(var(--ring));
+      outline-offset: 2px;
+      border-radius: var(--radius);
+    }
+
+    /* Invalid fields keep a visible destructive outline */
+    input[aria-invalid="true"]:focus-visible,
+    select[aria-invalid="true"]:focus-visible,
+    textarea[aria-invalid="true"]:focus-visible,
+    [role="combobox"][aria-invalid="true"]:focus-visible {
+      outline-color: hsl(var(--destructive));
+    }
   }
+
 
 
   h1, h2, h3, h4, h5, h6 {
