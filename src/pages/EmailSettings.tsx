@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -286,6 +287,8 @@ const EmailSettings = () => {
                 })()}
               </div>
               <Input
+                aria-invalid={!!errors.sender_domain}
+                aria-describedby={errors.sender_domain ? "sender_domain-error" : undefined}
                 id="domain"
                 placeholder="notify.yourdomain.com"
                 maxLength={253}
@@ -296,11 +299,7 @@ const EmailSettings = () => {
                   resetRetry();
                 }}
               />
-              {errors.sender_domain && (
-                <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertCircle size={12} /> {errors.sender_domain}
-                </p>
-              )}
+              <FieldError id="sender_domain-error">{errors.sender_domain}</FieldError>
               {dnsError && (
                 <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs font-body text-destructive flex items-start gap-2">
                   <AlertCircle size={14} className="shrink-0 mt-0.5" />
@@ -348,23 +347,23 @@ const EmailSettings = () => {
             <div className="space-y-2">
               <Label htmlFor="fromName">From name</Label>
               <Input
+                aria-invalid={!!errors.from_name}
+                aria-describedby={errors.from_name ? "from_name-error" : undefined}
                 id="fromName"
                 placeholder="Placement Predictor"
                 maxLength={100}
                 value={s.from_name}
                 onChange={(e) => update("from_name", e.target.value)}
               />
-              {errors.from_name && (
-                <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertCircle size={12} /> {errors.from_name}
-                </p>
-              )}
+              <FieldError id="from_name-error">{errors.from_name}</FieldError>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="local">From address (local part)</Label>
               <div className="flex items-stretch">
                 <Input
+                  aria-invalid={!!errors.from_local_part}
+                  aria-describedby={errors.from_local_part ? "from_local_part-error" : undefined}
                   id="local"
                   placeholder="notifications"
                   maxLength={64}
@@ -376,11 +375,7 @@ const EmailSettings = () => {
                   @{s.sender_domain || "yourdomain.com"}
                 </span>
               </div>
-              {errors.from_local_part && (
-                <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertCircle size={12} /> {errors.from_local_part}
-                </p>
-              )}
+              <FieldError id="from_local_part-error">{errors.from_local_part}</FieldError>
             </div>
 
             <div className="space-y-2">

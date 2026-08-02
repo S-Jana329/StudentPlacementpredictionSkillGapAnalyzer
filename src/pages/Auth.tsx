@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -23,6 +25,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; full_name?: string }>({});
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
@@ -32,9 +35,18 @@ const AuthPage = () => {
     e.preventDefault();
     const parsed = schema.safeParse({ email, password, full_name: fullName });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
+      const next: typeof errors = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as keyof typeof next;
+        if (key && !next[key]) next[key] = issue.message;
+      }
+      setErrors(next);
+      // Focus the first invalid field so mobile users land on the problem
+      document.getElementById(Object.keys(next)[0] === "full_name" ? "name" : Object.keys(next)[0])?.focus();
       return;
     }
+    setErrors({});
+
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -85,21 +97,60 @@ const AuthPage = () => {
           Student Placement Prediction System
         </p>
 
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="space-y-4" noValidate>
           {mode === "signup" && (
             <div>
               <Label htmlFor="name">Full name</Label>
-              <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Jane Doe" />
+              <Input
+                id="name"
+                value={fullName}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  setErrors((p) => ({ ...p, full_name: undefined }));
+                }}
+                placeholder="Jane Doe"
+                aria-invalid={!!errors.full_name}
+                aria-describedby={errors.full_name ? "name-error" : undefined}
+              />
+              <FieldError id="name-error">{errors.full_name}</FieldError>
             </div>
           )}
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input
+              id="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrors((p) => ({ ...p, email: undefined }));
+              }}
+              required
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "email-error" : undefined}
+            />
+            <FieldError id="email-error">{errors.email}</FieldError>
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input
+              id="password"
+              type="password"
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrors((p) => ({ ...p, password: undefined }));
+              }}
+              required
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
+            />
+            <FieldError id="password-error">{errors.password}</FieldError>
           </div>
+
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Please wait..." : mode === "signin" ? "Sign in" : "Create account"}
           </Button>
