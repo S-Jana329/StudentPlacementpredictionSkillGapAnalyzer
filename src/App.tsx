@@ -9,6 +9,7 @@ import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index.tsx";
 import Reports from "./pages/Reports.tsx";
 import Auth from "./pages/Auth.tsx";
+import ResetPassword from "./pages/ResetPassword.tsx";
 import ResumeAnalyzer from "./pages/ResumeAnalyzer.tsx";
 import InterviewCoach from "./pages/InterviewCoach.tsx";
 import CareerRoadmap from "./pages/CareerRoadmap.tsx";
@@ -30,6 +31,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/resume" element={<ProtectedRoute><ResumeAnalyzer /></ProtectedRoute>} />
             <Route path="/interview" element={<ProtectedRoute><InterviewCoach /></ProtectedRoute>} />
