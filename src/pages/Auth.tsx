@@ -67,7 +67,8 @@ type FormErrors = {
 const AuthPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [resetSent, setResetSent] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -86,6 +87,30 @@ const AuthPage = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "forgot") {
+      const parsedEmail = z.string().trim().email("Invalid email").max(255).safeParse(email);
+      if (!parsedEmail.success) {
+        setErrors({ email: parsedEmail.error.issues[0].message });
+        document.getElementById("email")?.focus();
+        return;
+      }
+      setErrors({});
+      setLoading(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(parsedEmail.data, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+      } catch (err: any) {
+        // Do not reveal whether the account exists
+        console.error("Password reset request failed", err?.message);
+      } finally {
+        setLoading(false);
+        setResetSent(true);
+      }
+      return;
+    }
+
     const values = { email, password, full_name: fullName, confirm_password: confirmPassword };
     const parsed = (mode === "signup" ? signUpSchema : signInSchema).safeParse(values);
     if (!parsed.success) {
@@ -147,7 +172,7 @@ const AuthPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="w-full max-w-md section-card">
         <h1 className="font-display text-2xl font-bold text-foreground mb-1">
-          {mode === "signin" ? "Sign in" : "Create account"}
+          {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Reset password"}
         </h1>
         <p className="text-sm text-muted-foreground font-body mb-6">
           Student Placement Prediction System
@@ -189,6 +214,7 @@ const AuthPage = () => {
             />
             <FieldError id="email-error">{errors.email}</FieldError>
           </div>
+          {mode !== "forgot" && (
           <div>
             <Label htmlFor="password">Password</Label>
             <div className="relative">
@@ -244,6 +270,7 @@ const AuthPage = () => {
               </div>
             )}
           </div>
+          )}
 
           {mode === "signup" && (
             <div>
@@ -287,11 +314,55 @@ const AuthPage = () => {
             </div>
           )}
 
+          {mode === "forgot" && resetSent && (
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              If an account exists for that email, we've sent a password reset link. Check your inbox
+              and spam folder — the link expires shortly for security.
+            </p>
+          )}
+
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Please wait..." : mode === "signin" ? "Sign in" : "Create account"}
+            {loading
+              ? "Please wait..."
+              : mode === "signin"
+                ? "Sign in"
+                : mode === "signup"
+                  ? "Create account"
+                  : resetSent
+                    ? "Resend reset link"
+                    : "Send reset link"}
           </Button>
+
+          {mode === "signin" && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("forgot");
+                setErrors({});
+                setResetSent(false);
+              }}
+              className="w-full text-sm text-primary hover:underline"
+            >
+              Forgot password?
+            </button>
+          )}
+
+          {mode === "forgot" && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signin");
+                setErrors({});
+                setResetSent(false);
+              }}
+              className="w-full text-sm text-primary hover:underline"
+            >
+              Back to sign in
+            </button>
+          )}
         </form>
 
+        {mode !== "forgot" && (<>
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
           <div className="relative flex justify-center text-xs uppercase">
@@ -313,6 +384,7 @@ const AuthPage = () => {
             {mode === "signin" ? "Sign up" : "Sign in"}
           </button>
         </p>
+        </>)}
       </div>
     </div>
   );
