@@ -25,15 +25,26 @@ const signInSchema = z.object({
   full_name: z.string().trim().max(100).optional(),
 });
 
-const signUpSchema = signInSchema.extend({
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(72, "Password must be 72 characters or fewer")
-    .regex(/[A-Z]/, "Password needs an uppercase letter")
-    .regex(/[a-z]/, "Password needs a lowercase letter")
-    .regex(/\d/, "Password needs a number"),
-});
+const signUpSchema = signInSchema
+  .extend({
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(72, "Password must be 72 characters or fewer")
+      .regex(/[A-Z]/, "Password needs an uppercase letter")
+      .regex(/[a-z]/, "Password needs a lowercase letter")
+      .regex(/\d/, "Password needs a number"),
+    confirm_password: z.string().min(1, "Please confirm your password"),
+  })
+  .superRefine(({ password, confirm_password }, context) => {
+    if (password !== confirm_password) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["confirm_password"],
+        message: "Passwords do not match",
+      });
+    }
+  });
 
 function getPasswordStrength(value: string) {
   const score = passwordRequirements.filter(({ test }) => test(value)).length;
@@ -42,10 +53,16 @@ function getPasswordStrength(value: string) {
   return {
     score,
     label: value ? labels[score] : labels[0],
-    isValid: score === passwordRequirements.length,
     barClass: score >= 4 ? "bg-primary" : score >= 3 ? "bg-primary/80" : score >= 2 ? "bg-secondary" : "bg-destructive",
   };
 }
+
+type FormErrors = {
+  email?: string;
+  password?: string;
+  full_name?: string;
+  confirm_password?: string;
+};
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -53,11 +70,15 @@ const AuthPage = () => {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; full_name?: string }>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const passwordStrength = getPasswordStrength(password);
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
@@ -65,16 +86,19 @@ const AuthPage = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = (mode === "signup" ? signUpSchema : signInSchema).safeParse({ email, password, full_name: fullName });
+    const values = { email, password, full_name: fullName, confirm_password: confirmPassword };
+    const parsed = (mode === "signup" ? signUpSchema : signInSchema).safeParse(values);
     if (!parsed.success) {
-      const next: typeof errors = {};
+      const next: FormErrors = {};
       for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as keyof typeof next;
+        const key = issue.path[0] as keyof FormErrors;
         if (key && !next[key]) next[key] = issue.message;
       }
       setErrors(next);
       // Focus the first invalid field so mobile users land on the problem
-      document.getElementById(Object.keys(next)[0] === "full_name" ? "name" : Object.keys(next)[0])?.focus();
+      const firstInvalidField = Object.keys(next)[0];
+      const fieldId = firstInvalidField === "full_name" ? "name" : firstInvalidField === "confirm_password" ? "confirm-password" : firstInvalidField;
+      document.getElementById(fieldId)?.focus();
       return;
     }
     setErrors({});
@@ -220,6 +244,48 @@ const AuthPage = () => {
               </div>
             )}
           </div>
+
+          {mode === "signup" && (
+            <div>
+              <Label htmlFor="confirm-password">Confirm password</Label>
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setErrors((p) => ({ ...p, confirm_password: undefined }));
+                  }}
+                  required
+                  className="pr-12"
+                  aria-invalid={!!errors.confirm_password || passwordsMismatch}
+                  aria-describedby="confirm-password-error"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowConfirmPassword((visible) => !visible)}
+                  className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2 md:h-8 md:w-8"
+                  aria-label={showConfirmPassword ? "Hide confirmed password" : "Show confirmed password"}
+                  aria-pressed={showConfirmPassword}
+                >
+                  {showConfirmPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </Button>
+              </div>
+              <FieldError id="confirm-password-error">
+                {errors.confirm_password ?? (passwordsMismatch ? "Passwords do not match." : undefined)}
+              </FieldError>
+              {passwordsMatch && !errors.confirm_password && (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-primary" aria-live="polite">
+                  <Check aria-hidden="true" size={14} />
+                  Passwords match.
+                </p>
+              )}
+            </div>
+          )}
 
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Please wait..." : mode === "signin" ? "Sign in" : "Create account"}
