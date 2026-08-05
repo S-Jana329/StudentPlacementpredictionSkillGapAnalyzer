@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Check, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,11 +12,40 @@ import { FieldError } from "@/components/ui/field-error";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const schema = z.object({
+const passwordRequirements = [
+  { label: "At least 8 characters", test: (value: string) => value.length >= 8 },
+  { label: "One uppercase letter", test: (value: string) => /[A-Z]/.test(value) },
+  { label: "One lowercase letter", test: (value: string) => /[a-z]/.test(value) },
+  { label: "One number", test: (value: string) => /\d/.test(value) },
+] as const;
+
+const signInSchema = z.object({
   email: z.string().trim().email("Invalid email").max(255),
   password: z.string().min(6, "Min 6 characters").max(72),
   full_name: z.string().trim().max(100).optional(),
 });
+
+const signUpSchema = signInSchema.extend({
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72, "Password must be 72 characters or fewer")
+    .regex(/[A-Z]/, "Password needs an uppercase letter")
+    .regex(/[a-z]/, "Password needs a lowercase letter")
+    .regex(/\d/, "Password needs a number"),
+});
+
+function getPasswordStrength(value: string) {
+  const score = passwordRequirements.filter(({ test }) => test(value)).length;
+  const labels = ["Use a stronger password", "Needs improvement", "Fair", "Good", "Strong"];
+
+  return {
+    score,
+    label: value ? labels[score] : labels[0],
+    isValid: score === passwordRequirements.length,
+    barClass: score >= 4 ? "bg-primary" : score >= 3 ? "bg-primary/80" : score >= 2 ? "bg-secondary" : "bg-destructive",
+  };
+}
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -28,6 +57,7 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; full_name?: string }>({});
+  const passwordStrength = getPasswordStrength(password);
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
@@ -35,7 +65,7 @@ const AuthPage = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = schema.safeParse({ email, password, full_name: fullName });
+    const parsed = (mode === "signup" ? signUpSchema : signInSchema).safeParse({ email, password, full_name: fullName });
     if (!parsed.success) {
       const next: typeof errors = {};
       for (const issue of parsed.error.issues) {
@@ -150,7 +180,7 @@ const AuthPage = () => {
                 required
                 className="pr-12"
                 aria-invalid={!!errors.password}
-                aria-describedby={errors.password ? "password-error" : undefined}
+                aria-describedby={errors.password ? "password-error" : mode === "signup" ? "password-guidance" : undefined}
               />
               <Button
                 type="button"
@@ -165,6 +195,30 @@ const AuthPage = () => {
               </Button>
             </div>
             <FieldError id="password-error">{errors.password}</FieldError>
+            {mode === "signup" && (
+              <div id="password-guidance" className="mt-3 space-y-2" aria-live="polite">
+                <div className="flex items-center gap-2" aria-label={`Password strength: ${passwordStrength.label}`}>
+                  {Array.from({ length: passwordRequirements.length }, (_, index) => (
+                    <span
+                      key={index}
+                      className={`h-1.5 flex-1 rounded-full ${index < passwordStrength.score ? passwordStrength.barClass : "bg-muted"}`}
+                    />
+                  ))}
+                  <span className="min-w-28 text-right text-xs font-medium text-muted-foreground">{passwordStrength.label}</span>
+                </div>
+                <ul className="grid grid-cols-1 gap-1 text-xs text-muted-foreground sm:grid-cols-2" aria-label="Password requirements">
+                  {passwordRequirements.map(({ label, test }) => {
+                    const met = test(password);
+                    return (
+                      <li key={label} className="flex items-center gap-1.5">
+                        <Check aria-hidden="true" className={met ? "text-primary" : "text-muted-foreground/60"} size={14} />
+                        <span className={met ? "text-foreground" : undefined}>{label}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
 
           <Button type="submit" disabled={loading} className="w-full">
