@@ -73,10 +73,13 @@ const AuthPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const passwordStrength = getPasswordStrength(password);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
-  const signupPasswordReady = passwordRequirements.every(({ test }) => test(password)) && passwordsMatch;
+  const signupPasswordReady = isPasswordValid(password) && passwordsMatch;
+  const errorSummary: ErrorSummaryItem[] = (Object.keys(errors) as (keyof FormErrors)[])
+    .filter((key) => errors[key])
+    .map((key) => ({ fieldId: fieldIds[key] ?? key, message: errors[key] as string }));
+
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
