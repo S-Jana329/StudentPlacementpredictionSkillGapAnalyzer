@@ -8,16 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
+import { FormErrorSummary, type ErrorSummaryItem } from "@/components/ui/form-error-summary";
+import {
+  PasswordStrengthMeter,
+  passwordRequirements,
+  isPasswordValid,
+} from "@/components/ui/password-strength-meter";
 
 import { toast } from "sonner";
 import { z } from "zod";
-
-const passwordRequirements = [
-  { label: "At least 8 characters", test: (value: string) => value.length >= 8 },
-  { label: "One uppercase letter", test: (value: string) => /[A-Z]/.test(value) },
-  { label: "One lowercase letter", test: (value: string) => /[a-z]/.test(value) },
-  { label: "One number", test: (value: string) => /\d/.test(value) },
-] as const;
 
 const signInSchema = z.object({
   email: z.string().trim().email("Invalid email").max(255),
@@ -46,16 +45,13 @@ const signUpSchema = signInSchema
     }
   });
 
-function getPasswordStrength(value: string) {
-  const score = passwordRequirements.filter(({ test }) => test(value)).length;
-  const labels = ["Use a stronger password", "Needs improvement", "Fair", "Good", "Strong"];
+const fieldIds: Record<string, string> = {
+  email: "email",
+  password: "password",
+  full_name: "name",
+  confirm_password: "confirm-password",
+};
 
-  return {
-    score,
-    label: value ? labels[score] : labels[0],
-    barClass: score >= 4 ? "bg-primary" : score >= 3 ? "bg-primary/80" : score >= 2 ? "bg-secondary" : "bg-destructive",
-  };
-}
 
 type FormErrors = {
   email?: string;
