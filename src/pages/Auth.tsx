@@ -322,7 +322,11 @@ const AuthPage = () => {
             </p>
           )}
 
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button
+            type="submit"
+            disabled={loading || (mode === "signup" && !signupPasswordReady)}
+            className="w-full"
+          >
             {loading
               ? "Please wait..."
               : mode === "signin"
