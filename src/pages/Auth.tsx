@@ -80,6 +80,7 @@ const AuthPage = () => {
   const passwordStrength = getPasswordStrength(password);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const signupPasswordReady = passwordRequirements.every(({ test }) => test(password)) && passwordsMatch;
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
@@ -321,7 +322,11 @@ const AuthPage = () => {
             </p>
           )}
 
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button
+            type="submit"
+            disabled={loading || (mode === "signup" && !signupPasswordReady)}
+            className="w-full"
+          >
             {loading
               ? "Please wait..."
               : mode === "signin"
