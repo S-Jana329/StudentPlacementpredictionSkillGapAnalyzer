@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
+import { FormErrorSummary, type ErrorSummaryItem } from "@/components/ui/form-error-summary";
+import { PasswordStrengthMeter } from "@/components/ui/password-strength-meter";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const passwordRequirements = [
-  { label: "At least 8 characters", test: (value: string) => value.length >= 8 },
-  { label: "One uppercase letter", test: (value: string) => /[A-Z]/.test(value) },
-  { label: "One lowercase letter", test: (value: string) => /[a-z]/.test(value) },
-  { label: "One number", test: (value: string) => /\d/.test(value) },
-] as const;
+const fieldIds: Record<string, string> = {
+  password: "new-password",
+  confirm_password: "confirm-new-password",
+};
+
 
 const schema = z
   .object({

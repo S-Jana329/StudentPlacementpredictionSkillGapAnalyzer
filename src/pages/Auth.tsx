@@ -120,12 +120,10 @@ const AuthPage = () => {
         if (key && !next[key]) next[key] = issue.message;
       }
       setErrors(next);
-      // Focus the first invalid field so mobile users land on the problem
-      const firstInvalidField = Object.keys(next)[0];
-      const fieldId = firstInvalidField === "full_name" ? "name" : firstInvalidField === "confirm_password" ? "confirm-password" : firstInvalidField;
-      document.getElementById(fieldId)?.focus();
+      // Focus moves to the error summary, which links to each invalid field
       return;
     }
+
     setErrors({});
 
     setLoading(true);
