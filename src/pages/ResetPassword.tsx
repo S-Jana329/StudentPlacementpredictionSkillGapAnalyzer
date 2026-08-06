@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
+import { FormErrorSummary, type ErrorSummaryItem } from "@/components/ui/form-error-summary";
+import { PasswordStrengthMeter } from "@/components/ui/password-strength-meter";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const passwordRequirements = [
-  { label: "At least 8 characters", test: (value: string) => value.length >= 8 },
-  { label: "One uppercase letter", test: (value: string) => /[A-Z]/.test(value) },
-  { label: "One lowercase letter", test: (value: string) => /[a-z]/.test(value) },
-  { label: "One number", test: (value: string) => /\d/.test(value) },
-] as const;
+const fieldIds: Record<string, string> = {
+  password: "new-password",
+  confirm_password: "confirm-new-password",
+};
+
 
 const schema = z
   .object({
@@ -48,8 +49,11 @@ const ResetPasswordPage = () => {
   const [errors, setErrors] = useState<{ password?: string; confirm_password?: string }>({});
   const [done, setDone] = useState(false);
 
-  const score = passwordRequirements.filter(({ test }) => test(password)).length;
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const errorSummary: ErrorSummaryItem[] = (Object.keys(errors) as (keyof typeof errors)[])
+    .filter((key) => errors[key])
+    .map((key) => ({ fieldId: fieldIds[key] ?? key, message: errors[key] as string }));
+
 
   useEffect(() => {
     const hash = window.location.hash ?? "";
@@ -121,6 +125,8 @@ const ResetPasswordPage = () => {
 
         {ready && validLink && !done && (
           <form onSubmit={submit} className="space-y-4" noValidate>
+            <FormErrorSummary items={errorSummary} title="Fix the following to continue" />
+
             <div>
               <Label htmlFor="new-password">New password</Label>
               <div className="relative">
@@ -151,27 +157,8 @@ const ResetPasswordPage = () => {
                 </Button>
               </div>
               <FieldError id="new-password-error">{errors.password}</FieldError>
-              <div className="mt-3 space-y-2" aria-live="polite">
-                <div className="flex items-center gap-2">
-                  {passwordRequirements.map((_, index) => (
-                    <span
-                      key={index}
-                      className={`h-1.5 flex-1 rounded-full ${index < score ? (score >= 4 ? "bg-primary" : score >= 2 ? "bg-secondary" : "bg-destructive") : "bg-muted"}`}
-                    />
-                  ))}
-                </div>
-                <ul className="grid grid-cols-1 gap-1 text-xs text-muted-foreground sm:grid-cols-2">
-                  {passwordRequirements.map(({ label, test }) => {
-                    const met = test(password);
-                    return (
-                      <li key={label} className="flex items-center gap-1.5">
-                        <Check aria-hidden="true" className={met ? "text-primary" : "text-muted-foreground/60"} size={14} />
-                        <span className={met ? "text-foreground" : undefined}>{label}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+              <PasswordStrengthMeter id="new-password-guidance" value={password} />
+
             </div>
 
             <div>

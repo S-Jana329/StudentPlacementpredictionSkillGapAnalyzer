@@ -8,16 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
+import { FormErrorSummary, type ErrorSummaryItem } from "@/components/ui/form-error-summary";
+import {
+  PasswordStrengthMeter,
+  passwordRequirements,
+  isPasswordValid,
+} from "@/components/ui/password-strength-meter";
 
 import { toast } from "sonner";
 import { z } from "zod";
-
-const passwordRequirements = [
-  { label: "At least 8 characters", test: (value: string) => value.length >= 8 },
-  { label: "One uppercase letter", test: (value: string) => /[A-Z]/.test(value) },
-  { label: "One lowercase letter", test: (value: string) => /[a-z]/.test(value) },
-  { label: "One number", test: (value: string) => /\d/.test(value) },
-] as const;
 
 const signInSchema = z.object({
   email: z.string().trim().email("Invalid email").max(255),
@@ -46,16 +45,13 @@ const signUpSchema = signInSchema
     }
   });
 
-function getPasswordStrength(value: string) {
-  const score = passwordRequirements.filter(({ test }) => test(value)).length;
-  const labels = ["Use a stronger password", "Needs improvement", "Fair", "Good", "Strong"];
+const fieldIds: Record<string, string> = {
+  email: "email",
+  password: "password",
+  full_name: "name",
+  confirm_password: "confirm-password",
+};
 
-  return {
-    score,
-    label: value ? labels[score] : labels[0],
-    barClass: score >= 4 ? "bg-primary" : score >= 3 ? "bg-primary/80" : score >= 2 ? "bg-secondary" : "bg-destructive",
-  };
-}
 
 type FormErrors = {
   email?: string;
@@ -77,10 +73,13 @@ const AuthPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const passwordStrength = getPasswordStrength(password);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
-  const signupPasswordReady = passwordRequirements.every(({ test }) => test(password)) && passwordsMatch;
+  const signupPasswordReady = isPasswordValid(password) && passwordsMatch;
+  const errorSummary: ErrorSummaryItem[] = (Object.keys(errors) as (keyof FormErrors)[])
+    .filter((key) => errors[key])
+    .map((key) => ({ fieldId: fieldIds[key] ?? key, message: errors[key] as string }));
+
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
@@ -121,12 +120,10 @@ const AuthPage = () => {
         if (key && !next[key]) next[key] = issue.message;
       }
       setErrors(next);
-      // Focus the first invalid field so mobile users land on the problem
-      const firstInvalidField = Object.keys(next)[0];
-      const fieldId = firstInvalidField === "full_name" ? "name" : firstInvalidField === "confirm_password" ? "confirm-password" : firstInvalidField;
-      document.getElementById(fieldId)?.focus();
+      // Focus moves to the error summary, which links to each invalid field
       return;
     }
+
     setErrors({});
 
     setLoading(true);
@@ -180,6 +177,8 @@ const AuthPage = () => {
         </p>
 
         <form onSubmit={submit} className="space-y-4" noValidate>
+          <FormErrorSummary items={errorSummary} title="Fix the following to continue" />
+
           {mode === "signup" && (
             <div>
               <Label htmlFor="name">Full name</Label>
@@ -247,29 +246,9 @@ const AuthPage = () => {
             </div>
             <FieldError id="password-error">{errors.password}</FieldError>
             {mode === "signup" && (
-              <div id="password-guidance" className="mt-3 space-y-2" aria-live="polite">
-                <div className="flex items-center gap-2" aria-label={`Password strength: ${passwordStrength.label}`}>
-                  {Array.from({ length: passwordRequirements.length }, (_, index) => (
-                    <span
-                      key={index}
-                      className={`h-1.5 flex-1 rounded-full ${index < passwordStrength.score ? passwordStrength.barClass : "bg-muted"}`}
-                    />
-                  ))}
-                  <span className="min-w-28 text-right text-xs font-medium text-muted-foreground">{passwordStrength.label}</span>
-                </div>
-                <ul className="grid grid-cols-1 gap-1 text-xs text-muted-foreground sm:grid-cols-2" aria-label="Password requirements">
-                  {passwordRequirements.map(({ label, test }) => {
-                    const met = test(password);
-                    return (
-                      <li key={label} className="flex items-center gap-1.5">
-                        <Check aria-hidden="true" className={met ? "text-primary" : "text-muted-foreground/60"} size={14} />
-                        <span className={met ? "text-foreground" : undefined}>{label}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+              <PasswordStrengthMeter id="password-guidance" value={password} />
             )}
+
           </div>
           )}
 
