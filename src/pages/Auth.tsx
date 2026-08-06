@@ -80,6 +80,7 @@ const AuthPage = () => {
   const passwordStrength = getPasswordStrength(password);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const signupPasswordReady = passwordRequirements.every(({ test }) => test(password)) && passwordsMatch;
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
