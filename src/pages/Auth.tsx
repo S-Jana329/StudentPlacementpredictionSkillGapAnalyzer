@@ -179,6 +179,8 @@ const AuthPage = () => {
         </p>
 
         <form onSubmit={submit} className="space-y-4" noValidate>
+          <FormErrorSummary items={errorSummary} title="Fix the following to continue" />
+
           {mode === "signup" && (
             <div>
               <Label htmlFor="name">Full name</Label>
@@ -246,29 +248,9 @@ const AuthPage = () => {
             </div>
             <FieldError id="password-error">{errors.password}</FieldError>
             {mode === "signup" && (
-              <div id="password-guidance" className="mt-3 space-y-2" aria-live="polite">
-                <div className="flex items-center gap-2" aria-label={`Password strength: ${passwordStrength.label}`}>
-                  {Array.from({ length: passwordRequirements.length }, (_, index) => (
-                    <span
-                      key={index}
-                      className={`h-1.5 flex-1 rounded-full ${index < passwordStrength.score ? passwordStrength.barClass : "bg-muted"}`}
-                    />
-                  ))}
-                  <span className="min-w-28 text-right text-xs font-medium text-muted-foreground">{passwordStrength.label}</span>
-                </div>
-                <ul className="grid grid-cols-1 gap-1 text-xs text-muted-foreground sm:grid-cols-2" aria-label="Password requirements">
-                  {passwordRequirements.map(({ label, test }) => {
-                    const met = test(password);
-                    return (
-                      <li key={label} className="flex items-center gap-1.5">
-                        <Check aria-hidden="true" className={met ? "text-primary" : "text-muted-foreground/60"} size={14} />
-                        <span className={met ? "text-foreground" : undefined}>{label}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+              <PasswordStrengthMeter id="password-guidance" value={password} />
             )}
+
           </div>
           )}
 
