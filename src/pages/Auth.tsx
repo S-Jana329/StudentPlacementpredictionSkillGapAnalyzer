@@ -158,6 +158,7 @@ const AuthPage = () => {
     setLoading(true);
     try {
       if (mode === "signup") {
+        if (!(await verifyCaptcha("signup"))) return;
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -176,9 +177,14 @@ const AuthPage = () => {
       navigate("/", { replace: true });
     } catch (err: any) {
       toast.error(err?.message ?? "Authentication failed");
+      if (mode === "signup") {
+        setCaptchaToken(null);
+        setCaptchaResetKey((k) => k + 1);
+      }
     } finally {
       setLoading(false);
     }
+
   };
 
   const google = async () => {
