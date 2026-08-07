@@ -16,6 +16,8 @@ import CareerRoadmap from "./pages/CareerRoadmap.tsx";
 import CareerAssistant from "./pages/CareerAssistant.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import AdminJobMatches from "./pages/AdminJobMatches.tsx";
+import AdminAuthLog from "./pages/AdminAuthLog.tsx";
+
 import EmailSettings from "./pages/EmailSettings.tsx";
 import JobAlerts from "./pages/JobAlerts.tsx";
 import NotFound from "./pages/NotFound.tsx";

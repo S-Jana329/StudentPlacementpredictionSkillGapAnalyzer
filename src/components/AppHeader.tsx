@@ -25,8 +25,14 @@ const AppHeader = () => {
   const [open, setOpen] = useState(false);
 
   const links = isAdmin
-    ? [...baseLinks, { to: "/admin", label: "Admin" }, { to: "/admin/job-matches", label: "Job Matches" }]
+    ? [
+        ...baseLinks,
+        { to: "/admin", label: "Admin" },
+        { to: "/admin/job-matches", label: "Job Matches" },
+        { to: "/admin/auth-log", label: "Auth Log" },
+      ]
     : baseLinks;
+
 
   return (
     <header className="border-b border-border bg-card px-4 sm:px-6 py-3 relative">
