@@ -129,11 +129,18 @@ const AuthPage = () => {
         });
         if (error) throw error;
         setResetSent(true);
+        void logAuthEvent("password_reset_requested", { email: parsedEmail.data, success: true });
       } catch (err: any) {
         // Do not reveal whether the account exists
         console.error("Password reset request failed", err?.message);
         setResetSent(true);
+        void logAuthEvent("password_reset_requested", {
+          email: parsedEmail.data,
+          success: false,
+          details: { reason: err?.message ?? "unknown" },
+        });
       } finally {
+
         setLoading(false);
         setCaptchaToken(null);
         setCaptchaResetKey((k) => k + 1);
