@@ -336,11 +336,25 @@ const AuthPage = () => {
             </p>
           )}
 
+          {needsCaptcha && (
+            <TurnstileWidget
+              key={mode}
+              resetKey={captchaResetKey}
+              onToken={(token) => setCaptchaToken(token)}
+              onAvailability={setCaptchaEnabled}
+            />
+          )}
+
           <Button
             type="submit"
-            disabled={loading || (mode === "signup" && !signupPasswordReady)}
+            disabled={
+              loading ||
+              (mode === "signup" && !signupPasswordReady) ||
+              (needsCaptcha && !captchaSatisfied)
+            }
             className="w-full"
           >
+
             {loading
               ? "Please wait..."
               : mode === "signin"
