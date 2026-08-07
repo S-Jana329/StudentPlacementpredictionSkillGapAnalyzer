@@ -121,19 +121,24 @@ const AuthPage = () => {
       setErrors({});
       setLoading(true);
       try {
+        if (!(await verifyCaptcha("password_reset"))) return;
         const { error } = await supabase.auth.resetPasswordForEmail(parsedEmail.data, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
+        setResetSent(true);
       } catch (err: any) {
         // Do not reveal whether the account exists
         console.error("Password reset request failed", err?.message);
+        setResetSent(true);
       } finally {
         setLoading(false);
-        setResetSent(true);
+        setCaptchaToken(null);
+        setCaptchaResetKey((k) => k + 1);
       }
       return;
     }
+
 
     const values = { email, password, full_name: fullName, confirm_password: confirmPassword };
     const parsed = (mode === "signup" ? signUpSchema : signInSchema).safeParse(values);
