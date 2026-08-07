@@ -73,12 +73,36 @@ const AuthPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaEnabled, setCaptchaEnabled] = useState(false);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const needsCaptcha = mode === "signup" || mode === "forgot";
+  const captchaSatisfied = !captchaEnabled || Boolean(captchaToken);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
   const signupPasswordReady = isPasswordValid(password) && passwordsMatch;
   const errorSummary: ErrorSummaryItem[] = (Object.keys(errors) as (keyof FormErrors)[])
     .filter((key) => errors[key])
     .map((key) => ({ fieldId: fieldIds[key] ?? key, message: errors[key] as string }));
+
+  const verifyCaptcha = async (action: "signup" | "password_reset") => {
+    if (!captchaEnabled) return true;
+    if (!captchaToken) {
+      toast.error("Please complete the captcha first");
+      return false;
+    }
+    const { data, error } = await supabase.functions.invoke("verify-captcha", {
+      body: { token: captchaToken, action },
+    });
+    if (error || !data?.success) {
+      toast.error("Captcha verification failed. Please try again.");
+      setCaptchaToken(null);
+      setCaptchaResetKey((k) => k + 1);
+      return false;
+    }
+    return true;
+  };
+
 
 
   useEffect(() => {
