@@ -32,6 +32,42 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_audit_log: {
+        Row: {
+          created_at: string
+          details: Json
+          email: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          success: boolean
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          email?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          email?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       career_roadmaps: {
         Row: {
           created_at: string

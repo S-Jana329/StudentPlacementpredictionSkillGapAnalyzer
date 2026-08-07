@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
 import { FormErrorSummary, type ErrorSummaryItem } from "@/components/ui/form-error-summary";
 import { PasswordStrengthMeter } from "@/components/ui/password-strength-meter";
+import { logAuthEvent } from "@/lib/authAudit";
+
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -89,17 +91,28 @@ const ResetPasswordPage = () => {
     setErrors({});
     setLoading(true);
     try {
+      const { data: userData } = await supabase.auth.getUser();
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       setDone(true);
       toast.success("Password updated");
+      // Log before signing out so the event can be attributed to the user
+      await logAuthEvent("password_reset_completed", {
+        email: userData.user?.email ?? undefined,
+        success: true,
+      });
       await supabase.auth.signOut();
       setTimeout(() => navigate("/auth", { replace: true }), 1200);
     } catch (err: any) {
       toast.error(err?.message ?? "Could not update password");
+      void logAuthEvent("password_reset_completed", {
+        success: false,
+        details: { reason: err?.message ?? "unknown" },
+      });
     } finally {
       setLoading(false);
     }
+
   };
 
   return (

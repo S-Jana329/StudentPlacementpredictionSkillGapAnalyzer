@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { logAuthEvent } from "@/lib/authAudit";
+
 
 import { FormErrorSummary, type ErrorSummaryItem } from "@/components/ui/form-error-summary";
 import {
@@ -129,11 +131,18 @@ const AuthPage = () => {
         });
         if (error) throw error;
         setResetSent(true);
+        void logAuthEvent("password_reset_requested", { email: parsedEmail.data, success: true });
       } catch (err: any) {
         // Do not reveal whether the account exists
         console.error("Password reset request failed", err?.message);
         setResetSent(true);
+        void logAuthEvent("password_reset_requested", {
+          email: parsedEmail.data,
+          success: false,
+          details: { reason: err?.message ?? "unknown" },
+        });
       } finally {
+
         setLoading(false);
         setCaptchaToken(null);
         setCaptchaResetKey((k) => k + 1);
@@ -170,6 +179,7 @@ const AuthPage = () => {
           },
         });
         if (error) throw error;
+        void logAuthEvent("signup", { email, success: true });
         toast.success("Account created. Check your email if confirmation is required.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -180,9 +190,15 @@ const AuthPage = () => {
     } catch (err: any) {
       toast.error(err?.message ?? "Authentication failed");
       if (mode === "signup") {
+        void logAuthEvent("signup", {
+          email,
+          success: false,
+          details: { reason: err?.message ?? "unknown" },
+        });
         setCaptchaToken(null);
         setCaptchaResetKey((k) => k + 1);
       }
+
     } finally {
       setLoading(false);
     }
