@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+
 import { FormErrorSummary, type ErrorSummaryItem } from "@/components/ui/form-error-summary";
 import {
   PasswordStrengthMeter,
@@ -73,12 +75,36 @@ const AuthPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaEnabled, setCaptchaEnabled] = useState(false);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const needsCaptcha = mode === "signup" || mode === "forgot";
+  const captchaSatisfied = !captchaEnabled || Boolean(captchaToken);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
   const signupPasswordReady = isPasswordValid(password) && passwordsMatch;
   const errorSummary: ErrorSummaryItem[] = (Object.keys(errors) as (keyof FormErrors)[])
     .filter((key) => errors[key])
     .map((key) => ({ fieldId: fieldIds[key] ?? key, message: errors[key] as string }));
+
+  const verifyCaptcha = async (action: "signup" | "password_reset") => {
+    if (!captchaEnabled) return true;
+    if (!captchaToken) {
+      toast.error("Please complete the captcha first");
+      return false;
+    }
+    const { data, error } = await supabase.functions.invoke("verify-captcha", {
+      body: { token: captchaToken, action },
+    });
+    if (error || !data?.success) {
+      toast.error("Captcha verification failed. Please try again.");
+      setCaptchaToken(null);
+      setCaptchaResetKey((k) => k + 1);
+      return false;
+    }
+    return true;
+  };
+
 
 
   useEffect(() => {
@@ -97,19 +123,24 @@ const AuthPage = () => {
       setErrors({});
       setLoading(true);
       try {
+        if (!(await verifyCaptcha("password_reset"))) return;
         const { error } = await supabase.auth.resetPasswordForEmail(parsedEmail.data, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
+        setResetSent(true);
       } catch (err: any) {
         // Do not reveal whether the account exists
         console.error("Password reset request failed", err?.message);
+        setResetSent(true);
       } finally {
         setLoading(false);
-        setResetSent(true);
+        setCaptchaToken(null);
+        setCaptchaResetKey((k) => k + 1);
       }
       return;
     }
+
 
     const values = { email, password, full_name: fullName, confirm_password: confirmPassword };
     const parsed = (mode === "signup" ? signUpSchema : signInSchema).safeParse(values);
@@ -129,6 +160,7 @@ const AuthPage = () => {
     setLoading(true);
     try {
       if (mode === "signup") {
+        if (!(await verifyCaptcha("signup"))) return;
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -147,9 +179,14 @@ const AuthPage = () => {
       navigate("/", { replace: true });
     } catch (err: any) {
       toast.error(err?.message ?? "Authentication failed");
+      if (mode === "signup") {
+        setCaptchaToken(null);
+        setCaptchaResetKey((k) => k + 1);
+      }
     } finally {
       setLoading(false);
     }
+
   };
 
   const google = async () => {
@@ -301,11 +338,25 @@ const AuthPage = () => {
             </p>
           )}
 
+          {needsCaptcha && (
+            <TurnstileWidget
+              key={mode}
+              resetKey={captchaResetKey}
+              onToken={(token) => setCaptchaToken(token)}
+              onAvailability={setCaptchaEnabled}
+            />
+          )}
+
           <Button
             type="submit"
-            disabled={loading || (mode === "signup" && !signupPasswordReady)}
+            disabled={
+              loading ||
+              (mode === "signup" && !signupPasswordReady) ||
+              (needsCaptcha && !captchaSatisfied)
+            }
             className="w-full"
           >
+
             {loading
               ? "Please wait..."
               : mode === "signin"
