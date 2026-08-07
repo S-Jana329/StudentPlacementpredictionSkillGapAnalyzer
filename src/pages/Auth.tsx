@@ -179,6 +179,7 @@ const AuthPage = () => {
           },
         });
         if (error) throw error;
+        void logAuthEvent("signup", { email, success: true });
         toast.success("Account created. Check your email if confirmation is required.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -189,9 +190,15 @@ const AuthPage = () => {
     } catch (err: any) {
       toast.error(err?.message ?? "Authentication failed");
       if (mode === "signup") {
+        void logAuthEvent("signup", {
+          email,
+          success: false,
+          details: { reason: err?.message ?? "unknown" },
+        });
         setCaptchaToken(null);
         setCaptchaResetKey((k) => k + 1);
       }
+
     } finally {
       setLoading(false);
     }
