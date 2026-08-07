@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+
 import { FormErrorSummary, type ErrorSummaryItem } from "@/components/ui/form-error-summary";
 import {
   PasswordStrengthMeter,
