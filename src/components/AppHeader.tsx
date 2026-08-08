@@ -15,6 +15,7 @@ const baseLinks = [
   { to: "/assistant", label: "Assistant" },
   { to: "/reports", label: "Reports" },
   { to: "/settings/email", label: "Email Settings" },
+  { to: "/settings/passkeys", label: "Passkeys" },
 ];
 
 const AppHeader = () => {

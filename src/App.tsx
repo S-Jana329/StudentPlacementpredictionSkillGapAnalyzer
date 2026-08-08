@@ -19,6 +19,7 @@ import AdminJobMatches from "./pages/AdminJobMatches.tsx";
 import AdminAuthLog from "./pages/AdminAuthLog.tsx";
 
 import EmailSettings from "./pages/EmailSettings.tsx";
+import PasskeySettings from "./pages/PasskeySettings.tsx";
 import JobAlerts from "./pages/JobAlerts.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/admin/auth-log" element={<ProtectedRoute><AdminRoute><AdminAuthLog /></AdminRoute></ProtectedRoute>} />
 
             <Route path="/settings/email" element={<ProtectedRoute><EmailSettings /></ProtectedRoute>} />
+            <Route path="/settings/passkeys" element={<ProtectedRoute><PasskeySettings /></ProtectedRoute>} />
             <Route path="/jobs" element={<ProtectedRoute><JobAlerts /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

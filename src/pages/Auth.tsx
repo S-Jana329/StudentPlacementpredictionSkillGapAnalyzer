@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Eye, EyeOff } from "lucide-react";
+import { Check, Eye, EyeOff, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { logAuthEvent } from "@/lib/authAudit";
+import { passkeysSupported, signInWithPasskey } from "@/lib/passkeys";
 
 
 import { FormErrorSummary, type ErrorSummaryItem } from "@/components/ui/form-error-summary";
@@ -203,6 +204,20 @@ const AuthPage = () => {
       setLoading(false);
     }
 
+  };
+
+  const passkeyLogin = async () => {
+    setLoading(true);
+    try {
+      await signInWithPasskey();
+      toast.success("Signed in with passkey");
+      navigate("/", { replace: true });
+    } catch (err: unknown) {
+      const message = (err as Error)?.message ?? "Passkey sign-in failed";
+      if (!/NotAllowed|abort/i.test(message)) toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const google = async () => {
@@ -421,9 +436,29 @@ const AuthPage = () => {
           </div>
         </div>
 
-        <Button type="button" variant="outline" onClick={google} disabled={loading} className="w-full">
-          Continue with Google
-        </Button>
+        <div className="space-y-3">
+          <Button type="button" variant="outline" onClick={google} disabled={loading} className="w-full">
+            Continue with Google
+          </Button>
+
+          {passkeysSupported() && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={passkeyLogin}
+                disabled={loading}
+                className="w-full"
+              >
+                <KeyRound aria-hidden="true" className="mr-2 h-4 w-4" />
+                Sign in with a passkey
+              </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                Add a passkey from Passkeys settings after signing in.
+              </p>
+            </>
+          )}
+        </div>
 
         <p className="text-sm text-center mt-6 text-muted-foreground">
           {mode === "signin" ? "Don't have an account?" : "Already have an account?"}{" "}
